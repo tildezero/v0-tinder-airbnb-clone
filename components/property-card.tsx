@@ -13,7 +13,7 @@ interface Property {
   reviews: number
   guests: number
   bedrooms: number
-  image: string
+  images: string[]
   host: string
 }
 
@@ -95,7 +95,7 @@ export function PropertyCard({ property, onSwipe }: PropertyCardProps) {
         {/* Property Image */}
         <div className="relative h-96 bg-secondary">
           <img
-            src={property.image || "/placeholder.svg"}
+            src={property.images[0] || "/placeholder.svg"}
             alt={property.title}
             className="w-full h-full object-cover"
             draggable={false}

@@ -8,7 +8,7 @@ export const properties = [
     reviews: 127,
     guests: 4,
     bedrooms: 2,
-    image: "/modern-loft-apartment-interior-downtown.jpg",
+    images: ["/modern-loft-apartment-interior-downtown.jpg"],
     host: "Sarah",
   },
   {
@@ -20,7 +20,7 @@ export const properties = [
     reviews: 89,
     guests: 8,
     bedrooms: 4,
-    image: "/luxury-beachfront-villa-pool-ocean-view.jpg",
+    images: ["/luxury-beachfront-villa-pool-ocean-view.jpg"],
     host: "Michael",
   },
   {
@@ -32,7 +32,7 @@ export const properties = [
     reviews: 156,
     guests: 6,
     bedrooms: 3,
-    image: "/cozy-mountain-cabin-snow-fireplace.jpg",
+    images: ["/cozy-mountain-cabin-snow-fireplace.jpg"],
     host: "Emma",
   },
   {
@@ -44,7 +44,7 @@ export const properties = [
     reviews: 203,
     guests: 5,
     bedrooms: 3,
-    image: "/luxury-penthouse-city-skyline-view.jpg",
+    images: ["/luxury-penthouse-city-skyline-view.jpg"],
     host: "David",
   },
   {
@@ -56,7 +56,7 @@ export const properties = [
     reviews: 94,
     guests: 4,
     bedrooms: 2,
-    image: "/tropical-beach-bungalow-palm-trees.jpg",
+    images: ["/tropical-beach-bungalow-palm-trees.jpg"],
     host: "Olivia",
   },
   {
@@ -68,7 +68,7 @@ export const properties = [
     reviews: 142,
     guests: 6,
     bedrooms: 3,
-    image: "/historic-brownstone-interior-elegant.jpg",
+    images: ["/historic-brownstone-interior-elegant.jpg"],
     host: "James",
   },
   {
@@ -80,7 +80,7 @@ export const properties = [
     reviews: 78,
     guests: 4,
     bedrooms: 2,
-    image: "/desert-modern-house-pool-cactus.jpg",
+    images: ["/desert-modern-house-pool-cactus.jpg"],
     host: "Sophia",
   },
   {
@@ -92,7 +92,7 @@ export const properties = [
     reviews: 118,
     guests: 5,
     bedrooms: 2,
-    image: "/lakeside-cottage-dock-mountains.jpg",
+    images: ["/lakeside-cottage-dock-mountains.jpg"],
     host: "William",
   },
 ]
