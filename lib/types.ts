@@ -46,6 +46,8 @@ export interface Property {
   address?: string
   zip_code?: string
   zipCode?: string
+  city?: string
+  state?: string
   availability?: Availability[]
 }
 

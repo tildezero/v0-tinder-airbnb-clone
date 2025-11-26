@@ -18,7 +18,7 @@ export default function SearchPage() {
   const [checkInDate, setCheckInDate] = useState("")
   const [checkOutDate, setCheckOutDate] = useState("")
   const [bedroomsFilter, setBedroomsFilter] = useState<number | null>(null)
-  const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "zip_asc" | "zip_desc" | "rating_desc" | null>(null)
+  const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "zip_asc" | "zip_desc" | "rating_desc" | "name_asc" | null>(null)
   const [minRating, setMinRating] = useState<number | null>(null)
   const [zipFilter, setZipFilter] = useState<string>("")
   const [allProperties, setAllProperties] = useState<Property[]>([])
@@ -72,9 +72,17 @@ export default function SearchPage() {
         return false
       }
       
-      // Filter by zip code
-      if (zipFilter && property.zip_code && !property.zip_code.includes(zipFilter)) {
-        return false
+      // Filter by zip code (exact match or starts with)
+      if (zipFilter) {
+        if (!property.zip_code) {
+          // If filter is set but property has no zip code, exclude it
+          return false
+        }
+        const zipMatch = property.zip_code.trim().toLowerCase()
+        const filterZip = zipFilter.trim().toLowerCase()
+        if (!zipMatch.startsWith(filterZip)) {
+          return false
+        }
       }
       
       return true
@@ -93,6 +101,9 @@ export default function SearchPage() {
         return zipB.localeCompare(zipA)
       }
       if (sortBy === "rating_desc") return b.rating - a.rating
+      if (sortBy === "name_asc") {
+        return a.title.localeCompare(b.title)
+      }
       return 0
     })
 
@@ -217,7 +228,8 @@ export default function SearchPage() {
                       sortBy === "price_desc" ? "Price: High-Low" :
                       sortBy === "zip_asc" ? "Zip: A-Z" :
                       sortBy === "zip_desc" ? "Zip: Z-A" :
-                      sortBy === "rating_desc" ? "Rating: High-Low" : ""})
+                      sortBy === "rating_desc" ? "Rating: High-Low" :
+                      sortBy === "name_asc" ? "Name: A-Z" : ""})
                   </span>
                 )}
               </Button>
@@ -237,6 +249,9 @@ export default function SearchPage() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setSortBy("rating_desc"); handleFilterChange() }}>
                 Rating: High to Low
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortBy("name_asc"); handleFilterChange() }}>
+                Name: A to Z
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setSortBy(null); handleFilterChange() }}>
                 Clear Sort
@@ -284,6 +299,12 @@ export default function SearchPage() {
                   onChange={(e) => {
                     setZipFilter(e.target.value)
                     handleFilterChange()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleFilterChange()
+                    }
                   }}
                   className="mb-2"
                 />

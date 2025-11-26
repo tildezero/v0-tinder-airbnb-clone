@@ -45,8 +45,10 @@ export default function SwipePage() {
       const allProperties = await api.getProperties()
       setProperties(allProperties)
       
-      // Extract unique locations
-      const locations = [...new Set(allProperties.map((p: Property) => p.location))].sort()
+      // Extract unique cities and states
+      const cities = [...new Set(allProperties.map((p: Property) => (p as any).city).filter(Boolean))].sort()
+      const states = [...new Set(allProperties.map((p: Property) => (p as any).state).filter(Boolean))].sort()
+      const locations = [...cities, ...states].sort()
       setAvailableLocations(locations)
     } catch (error) {
       console.error("Failed to load properties:", error)
@@ -57,17 +59,21 @@ export default function SwipePage() {
 
   const handleLocationSelect = () => {
     if (!locationQuery.trim()) {
-      alert("Please enter a location")
+      alert("Please enter a city or state")
       return
     }
 
-    // Filter properties by location (case-insensitive partial match)
-    const filtered = properties.filter((p) =>
-      p.location.toLowerCase().includes(locationQuery.toLowerCase())
-    )
+    const query = locationQuery.trim().toLowerCase()
+    
+    // Filter properties by city or state (case-insensitive exact or partial match)
+    const filtered = properties.filter((p: Property) => {
+      const city = ((p as any).city || "").toLowerCase()
+      const state = ((p as any).state || "").toLowerCase()
+      return city === query || state === query || city.includes(query) || state.includes(query)
+    })
 
     if (filtered.length === 0) {
-      alert(`No properties found in "${locationQuery}". Try a different location.`)
+      alert(`No properties found in "${locationQuery}". Try a different city or state.`)
       return
     }
 
@@ -125,17 +131,17 @@ export default function SwipePage() {
             </div>
 
             <p className="text-muted-foreground mb-6">
-              Select a location to start swiping through available properties.
+              Enter a city or state to start swiping through available properties.
             </p>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="location">Search Location</Label>
+                <Label htmlFor="location">Search City or State</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="location"
-                    placeholder="Enter city, state, or location..."
+                    placeholder="Enter city or state..."
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -156,7 +162,7 @@ export default function SwipePage() {
 
               {availableLocations.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Or select from available locations:</Label>
+                  <Label>Or select from available cities and states:</Label>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {availableLocations.map((location) => (
                       <Button

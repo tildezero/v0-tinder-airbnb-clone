@@ -53,12 +53,14 @@ export async function POST(request: NextRequest) {
       description,
       address,
       zip_code,
+      city,
+      state,
       availability,
     } = data
 
     const stmt = db.prepare(`
-      INSERT INTO properties (title, location, price, guests, bedrooms, bathrooms, images, host_id, host_name, description, address, zip_code)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO properties (title, location, price, guests, bedrooms, bathrooms, images, host_id, host_name, description, address, zip_code, city, state)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     const result = stmt.run(
@@ -73,7 +75,9 @@ export async function POST(request: NextRequest) {
       host_name,
       description || null,
       address || null,
-      zip_code || null
+      zip_code || null,
+      city || null,
+      state || null
     )
 
     const propertyId = result.lastInsertRowid

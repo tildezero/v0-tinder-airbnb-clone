@@ -34,25 +34,27 @@ db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
-  CREATE TABLE IF NOT EXISTS properties (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    location TEXT NOT NULL,
-    price REAL NOT NULL,
-    rating REAL DEFAULT 0,
-    reviews INTEGER DEFAULT 0,
-    guests INTEGER NOT NULL,
-    bedrooms INTEGER NOT NULL,
-    bathrooms INTEGER NOT NULL,
-    images TEXT NOT NULL,
-    host_id TEXT NOT NULL,
-    host_name TEXT NOT NULL,
-    description TEXT,
-    address TEXT,
-    zip_code TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (host_id) REFERENCES users(id)
-  );
+      CREATE TABLE IF NOT EXISTS properties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        location TEXT NOT NULL,
+        price REAL NOT NULL,
+        rating REAL DEFAULT 0,
+        reviews INTEGER DEFAULT 0,
+        guests INTEGER NOT NULL,
+        bedrooms INTEGER NOT NULL,
+        bathrooms INTEGER NOT NULL,
+        images TEXT NOT NULL,
+        host_id TEXT NOT NULL,
+        host_name TEXT NOT NULL,
+        description TEXT,
+        address TEXT,
+        zip_code TEXT,
+        city TEXT,
+        state TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (host_id) REFERENCES users(id)
+      );
 
   CREATE TABLE IF NOT EXISTS availability (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,6 +174,15 @@ try {
     ALTER TABLE reviews ADD COLUMN stay_end_date TEXT;
     ALTER TABLE reviews ADD COLUMN review_type TEXT;
     ALTER TABLE reviews ADD COLUMN reviewed_user_id TEXT;
+  `)
+} catch (e) {
+  // Columns already exist, ignore
+}
+
+try {
+  db.exec(`
+    ALTER TABLE properties ADD COLUMN city TEXT;
+    ALTER TABLE properties ADD COLUMN state TEXT;
   `)
 } catch (e) {
   // Columns already exist, ignore

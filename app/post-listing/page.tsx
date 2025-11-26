@@ -25,7 +25,6 @@ export default function PostListingPage() {
     zipCode: "",
     description: "",
     price: "",
-    location: "",
     guests: "",
   })
   const [images, setImages] = useState<string[]>([])
@@ -99,7 +98,7 @@ export default function PostListingPage() {
       return
     }
 
-    if (!formData.title || !formData.bedrooms || !formData.bathrooms || !formData.price || !formData.location || 
+    if (!formData.title || !formData.bedrooms || !formData.bathrooms || !formData.price || 
         !formData.streetAddress || !formData.city || !formData.state || !formData.zipCode) {
       alert("Please fill in all required fields including the full address")
       return
@@ -115,10 +114,12 @@ export default function PostListingPage() {
     try {
       // Combine address fields into full address string
       const fullAddress = `${formData.streetAddress}, ${formData.city}, ${formData.state} ${formData.zipCode}`.trim()
+      // Create location string from city and state
+      const location = `${formData.city}, ${formData.state}`
       
       await api.createProperty({
         title: formData.title,
-        location: formData.location,
+        location: location,
         price: Number.parseFloat(formData.price),
         guests: Number.parseInt(formData.guests) || 1,
         bedrooms: Number.parseInt(formData.bedrooms),
@@ -129,6 +130,8 @@ export default function PostListingPage() {
         description: formData.description || null,
         address: fullAddress,
         zip_code: formData.zipCode,
+        city: formData.city,
+        state: formData.state,
         availability: availability,
       })
 
@@ -143,7 +146,6 @@ export default function PostListingPage() {
         zipCode: "",
         description: "",
         price: "",
-        location: "",
         guests: "",
       })
       setImages([])
@@ -242,18 +244,6 @@ export default function PostListingPage() {
                       required
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <Input
-                    id="location"
-                    placeholder="City, State"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="bg-input"
-                    required
-                  />
                 </div>
 
                 <div className="space-y-2">
