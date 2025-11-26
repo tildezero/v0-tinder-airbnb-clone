@@ -1,4 +1,6 @@
-export const properties = [
+import type { Property } from "./types"
+
+export const properties: Property[] = [
   {
     id: 1,
     title: "Modern Loft in Downtown",
@@ -8,8 +10,10 @@ export const properties = [
     reviews: 127,
     guests: 4,
     bedrooms: 2,
+    bathrooms: 1,
     images: ["/modern-loft-apartment-interior-downtown.jpg"],
     host: "Sarah",
+    description: "Stylish modern loft in the heart of downtown with amazing city views.",
   },
   {
     id: 2,
@@ -20,8 +24,10 @@ export const properties = [
     reviews: 89,
     guests: 8,
     bedrooms: 4,
+    bathrooms: 3,
     images: ["/luxury-beachfront-villa-pool-ocean-view.jpg"],
     host: "Michael",
+    description: "Luxurious beachfront villa with private pool and stunning ocean views.",
   },
   {
     id: 3,
@@ -32,8 +38,10 @@ export const properties = [
     reviews: 156,
     guests: 6,
     bedrooms: 3,
+    bathrooms: 2,
     images: ["/cozy-mountain-cabin-snow-fireplace.jpg"],
     host: "Emma",
+    description: "Charming mountain cabin perfect for a winter getaway with fireplace.",
   },
   {
     id: 4,
@@ -44,8 +52,10 @@ export const properties = [
     reviews: 203,
     guests: 5,
     bedrooms: 3,
+    bathrooms: 2,
     images: ["/luxury-penthouse-city-skyline-view.jpg"],
     host: "David",
+    description: "Stunning penthouse with panoramic city skyline views.",
   },
   {
     id: 5,
@@ -56,8 +66,10 @@ export const properties = [
     reviews: 94,
     guests: 4,
     bedrooms: 2,
+    bathrooms: 2,
     images: ["/tropical-beach-bungalow-palm-trees.jpg"],
     host: "Olivia",
+    description: "Beautiful tropical bungalow steps from the beach with palm trees.",
   },
   {
     id: 6,
@@ -68,8 +80,10 @@ export const properties = [
     reviews: 142,
     guests: 6,
     bedrooms: 3,
+    bathrooms: 2,
     images: ["/historic-brownstone-interior-elegant.jpg"],
     host: "James",
+    description: "Elegant historic brownstone with classic architecture.",
   },
   {
     id: 7,
@@ -80,8 +94,10 @@ export const properties = [
     reviews: 78,
     guests: 4,
     bedrooms: 2,
+    bathrooms: 2,
     images: ["/desert-modern-house-pool-cactus.jpg"],
     host: "Sophia",
+    description: "Modern desert retreat with pool and beautiful cactus garden.",
   },
   {
     id: 8,
@@ -92,7 +108,9 @@ export const properties = [
     reviews: 118,
     guests: 5,
     bedrooms: 2,
+    bathrooms: 1,
     images: ["/lakeside-cottage-dock-mountains.jpg"],
     host: "William",
+    description: "Peaceful lakeside cottage with dock access and mountain views.",
   },
 ]

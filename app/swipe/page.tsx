@@ -1,28 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { PropertyCard } from "@/components/property-card"
 import { SwipeActions } from "@/components/swipe-actions"
 import { AppHeader } from "@/components/app-header"
-import { properties } from "@/lib/properties-data"
+import { properties as defaultProperties } from "@/lib/properties-data"
+import { storage } from "@/lib/storage"
+import { useApp } from "@/lib/context"
 
 export default function SwipePage() {
+  const router = useRouter()
+  const { user } = useApp()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [likedProperties, setLikedProperties] = useState<number[]>([])
+  const [allProperties, setAllProperties] = useState(defaultProperties)
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
+    const liked = storage.getLikedProperties()
+    setLikedProperties(liked)
+    
+    const userProperties = storage.getProperties()
+    setAllProperties([...defaultProperties, ...userProperties])
+  }, [user, router])
 
   const handleSwipe = (direction: "left" | "right") => {
     if (direction === "right") {
-      setLikedProperties([...likedProperties, properties[currentIndex].id])
+      const newLiked = [...likedProperties, allProperties[currentIndex].id]
+      setLikedProperties(newLiked)
+      storage.addLikedProperty(allProperties[currentIndex].id)
     }
 
-    if (currentIndex < properties.length - 1) {
+    if (currentIndex < allProperties.length - 1) {
       setCurrentIndex(currentIndex + 1)
     } else {
       setCurrentIndex(0)
     }
   }
 
-  const currentProperty = properties[currentIndex]
+  const currentProperty = allProperties[currentIndex]
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -33,7 +53,7 @@ export default function SwipePage() {
           {currentProperty && <PropertyCard property={currentProperty} onSwipe={handleSwipe} />}
         </div>
 
-        {currentIndex === properties.length - 1 && (
+        {currentIndex === allProperties.length - 1 && (
           <p className="text-muted-foreground text-sm mt-4 text-center">
             You've seen all properties! Swipe to start over.
           </p>

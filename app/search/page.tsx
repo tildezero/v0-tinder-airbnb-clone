@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Search, Calendar, Star, MapPin, Bed, Bath, ChevronLeft, ChevronRight } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { properties } from "@/lib/properties-data"
+import { properties as defaultProperties } from "@/lib/properties-data"
+import { storage } from "@/lib/storage"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export default function SearchPage() {
@@ -15,10 +16,16 @@ export default function SearchPage() {
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null)
   const [minRating, setMinRating] = useState<number | null>(null)
   const [zipFilter, setZipFilter] = useState<string>("")
+  const [allProperties, setAllProperties] = useState(defaultProperties)
+
+  useEffect(() => {
+    const userProperties = storage.getProperties()
+    setAllProperties([...defaultProperties, ...userProperties])
+  }, [])
 
   const itemsPerPage = 9
 
-  const filteredProperties = properties
+  const filteredProperties = allProperties
     .filter((property) => {
       // Search by location
       if (searchQuery && !property.location.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -204,7 +211,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Bath className="w-4 h-4" />
-                      <span>7 baths</span>
+                      <span>{property.bathrooms || 1} baths</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-current" />

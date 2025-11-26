@@ -8,15 +8,46 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useApp } from "@/lib/context"
+import { storage } from "@/lib/storage"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useApp()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    router.push("/search")
+    setError("")
+    
+    if (!email || !password) {
+      setError("Please enter both email and password")
+      return
+    }
+
+    const savedUser = storage.getUser()
+    
+    // Check if user exists
+    if (!savedUser || savedUser.email !== email) {
+      // New user - redirect to signup
+      router.push("/signup")
+      return
+    }
+
+    // Check password
+    if (savedUser.password !== password) {
+      setError("Invalid email or password")
+      return
+    }
+
+    // Login successful
+    if (login(email, password)) {
+      router.push("/swipe")
+    } else {
+      setError("Login failed")
+    }
   }
 
   return (
@@ -25,6 +56,11 @@ export default function LoginPage() {
         <h1 className="text-4xl font-bold text-center mb-8">BumbleBnB</h1>
 
         <div className="bg-card rounded-2xl shadow-lg p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -63,7 +99,7 @@ export default function LoginPage() {
 
             <p className="text-center text-sm">
               Don't have an account?{" "}
-              <Link href="#" className="underline font-medium">
+              <Link href="/signup" className="underline font-medium">
                 Sign up
               </Link>
             </p>

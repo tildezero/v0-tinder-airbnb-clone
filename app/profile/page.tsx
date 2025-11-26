@@ -1,14 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Calendar, Pencil, Trash2 } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useApp } from "@/lib/context"
 
 export default function ProfilePage() {
+  const router = useRouter()
+  const { user, updateUser, logout } = useApp()
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -19,6 +23,64 @@ export default function ProfilePage() {
     bio: "",
     address: "",
   })
+  const [isSaving, setIsSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
+    setFormData({
+      name: user.name || "",
+      username: user.username || "",
+      email: user.email || "",
+      password: user.password || "",
+      dob: user.dob || "",
+      payment: user.payment || "",
+      bio: user.bio || "",
+      address: user.address || "",
+    })
+  }, [user, router])
+
+  const handleSave = () => {
+    if (!user) return
+
+    setIsSaving(true)
+    updateUser(formData)
+    
+    setTimeout(() => {
+      setIsSaving(false)
+      alert("Profile updated successfully!")
+    }, 500)
+  }
+
+  const handleDelete = () => {
+    if (!user) return
+    
+    logout()
+    alert("Profile deleted successfully!")
+    router.push("/login")
+  }
+
+  const calculateAge = (dob: string): number | undefined => {
+    if (!dob) return undefined
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  if (!user) {
+    return null
+  }
+
+  const userAge = calculateAge(formData.dob)
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,9 +90,16 @@ export default function ProfilePage() {
         <div className="bg-card rounded-xl border border-border p-8">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-4xl">👤</span>
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <span className="text-4xl">👤</span>
+              )}
             </div>
-            <h1 className="text-2xl font-bold">Firstname Lastname</h1>
+            <div>
+              <h1 className="text-2xl font-bold">{formData.name || "User"}</h1>
+              {userAge && <p className="text-sm text-muted-foreground">{userAge} years old</p>}
+            </div>
           </div>
 
           <h2 className="text-xl font-bold mb-6">Profile Info</h2>
@@ -107,7 +176,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="bio">Bio</Label>
               <Textarea
                 id="bio"
@@ -118,7 +187,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address</Label>
               <Textarea
                 id="address"
@@ -131,15 +200,33 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex gap-4">
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={handleSave} disabled={isSaving}>
               <Pencil className="w-4 h-4" />
-              Save
+              {isSaving ? "Saving..." : "Save"}
             </Button>
-            <Button variant="destructive" className="gap-2">
+            <Button
+              variant="destructive"
+              className="gap-2"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
               <Trash2 className="w-4 h-4" />
               Delete Profile
             </Button>
           </div>
+
+          {showDeleteConfirm && (
+            <div className="mt-6 p-4 bg-destructive/10 border border-destructive rounded-lg">
+              <p className="text-sm mb-4">Are you sure you want to delete your profile? This action cannot be undone.</p>
+              <div className="flex gap-2">
+                <Button variant="destructive" size="sm" onClick={handleDelete}>
+                  Yes, Delete
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
