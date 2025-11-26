@@ -42,7 +42,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { property_id, renter_id, start_date, end_date, total_price } = data
+    const {
+      property_id,
+      renter_id,
+      start_date,
+      end_date,
+      subtotal,
+      guest_first_name,
+      guest_last_name,
+      guest_middle_initial,
+      guest_email,
+      guest_credit_card,
+    } = data
 
     // Check if dates are available
     const conflictingBookings = db
@@ -64,12 +75,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Selected dates are not available" }, { status: 400 })
     }
 
+    // Calculate tax (12% of subtotal) and total
+    const calculatedSubtotal = subtotal || 0
+    const tax = calculatedSubtotal * 0.12
+    const total_price = calculatedSubtotal + tax
+
+    // Generate reservation number
+    const timestamp = Date.now()
+    const random = Math.floor(Math.random() * 1000)
+    const reservation_number = `RES-${timestamp}-${random}`
+
     const stmt = db.prepare(`
-      INSERT INTO bookings (property_id, renter_id, start_date, end_date, total_price, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
+      INSERT INTO bookings (
+        property_id, renter_id, start_date, end_date, 
+        subtotal, tax, total_price, reservation_number,
+        guest_first_name, guest_last_name, guest_middle_initial,
+        guest_email, guest_credit_card, status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
     `)
 
-    const result = stmt.run(property_id, renter_id, start_date, end_date, total_price)
+    const result = stmt.run(
+      property_id,
+      renter_id || null,
+      start_date,
+      end_date,
+      calculatedSubtotal,
+      tax,
+      total_price,
+      reservation_number,
+      guest_first_name || null,
+      guest_last_name || null,
+      guest_middle_initial || null,
+      guest_email || null,
+      guest_credit_card || null
+    )
+
     const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(result.lastInsertRowid)
 
     return NextResponse.json(booking, { status: 201 })

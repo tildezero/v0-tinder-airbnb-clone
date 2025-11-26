@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Home, User, ArrowLeftRight } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/lib/context"
+import { api } from "@/lib/api"
 
 export function AppHeader() {
-  const { user, logout } = useApp()
+  const { user, logout, updateUser, refreshUser } = useApp()
   const initials = user?.name
     .split(" ")
     .map((n) => n[0])
@@ -18,6 +19,20 @@ export function AppHeader() {
   const handleLogout = () => {
     logout()
     window.location.href = "/login"
+  }
+
+  const handleSwitchAccountType = async () => {
+    if (!user) return
+    
+    const newType = user.account_type === "renter" ? "homeowner" : "renter"
+    try {
+      await updateUser({ account_type: newType })
+      await refreshUser()
+      // Reload the page to update UI based on new account type
+      window.location.reload()
+    } catch (error) {
+      alert("Failed to switch account type. Please try again.")
+    }
   }
 
   return (
@@ -108,10 +123,27 @@ export function AppHeader() {
                   <div className="px-2 py-1.5 border-b border-border">
                     <p className="text-sm font-semibold">{user.name}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {user.account_type === "renter" ? (
+                        <User className="w-3 h-3 text-muted-foreground" />
+                      ) : (
+                        <Home className="w-3 h-3 text-muted-foreground" />
+                      )}
+                      <span className="text-xs text-muted-foreground capitalize">{user.account_type}</span>
+                    </div>
                   </div>
+                  <DropdownMenuItem onClick={handleSwitchAccountType}>
+                    <ArrowLeftRight className="w-4 h-4 mr-2" />
+                    Switch to {user.account_type === "renter" ? "Homeowner" : "Renter"}
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/profile">Edit Profile</Link>
                   </DropdownMenuItem>
+                  {user.account_type === "renter" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/cancel-reservation">Cancel Reservation</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

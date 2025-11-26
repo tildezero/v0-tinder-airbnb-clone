@@ -147,7 +147,9 @@ export default function ListingPage({ params }: { params: { id: string } }) {
             <div>
               <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
               <p className="text-2xl font-semibold mb-4">${property.price}/night</p>
-              <p className="text-sm text-muted-foreground">Listed by: {property.host}</p>
+              <p className="text-sm text-muted-foreground">
+                Listed by: {property.host || property.host_name || "Unknown"}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">{property.location}</p>
               {property.description && (
                 <p className="text-sm text-muted-foreground mt-2">{property.description}</p>
@@ -176,7 +178,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                     <Star className="w-5 h-5" />
                     <span>Rating</span>
                   </div>
-                  <span className="font-semibold">{property.rating}/5</span>
+                  <span className="font-semibold">{property.rating.toFixed(1)}/10</span>
                 </div>
               </div>
             </div>
@@ -206,23 +208,65 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                     />
                   </div>
                   {selectedDates.start_date && selectedDates.end_date && (
-                    <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-sm">
-                        Total: $
-                        {(
-                          Math.ceil(
-                            (new Date(selectedDates.end_date).getTime() -
-                              new Date(selectedDates.start_date).getTime()) /
-                              (1000 * 60 * 60 * 24)
-                          ) * property.price
-                        ).toFixed(2)}
-                      </p>
+                    <div className="bg-muted p-3 rounded-lg space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>
+                          $
+                          {(
+                            Math.ceil(
+                              (new Date(selectedDates.end_date).getTime() -
+                                new Date(selectedDates.start_date).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            ) * property.price
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Tax (12%):</span>
+                        <span>
+                          $
+                          {(
+                            Math.ceil(
+                              (new Date(selectedDates.end_date).getTime() -
+                                new Date(selectedDates.start_date).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            ) *
+                              property.price *
+                              0.12
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold border-t border-border pt-1 mt-1">
+                        <span>Total:</span>
+                        <span>
+                          $
+                          {(
+                            Math.ceil(
+                              (new Date(selectedDates.end_date).getTime() -
+                                new Date(selectedDates.start_date).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            ) *
+                              property.price *
+                              1.12
+                          ).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   )}
-                  <Button className="w-full" onClick={handleBook} disabled={!user}>
+                  <Button className="w-full" onClick={handleBook}>
                     <Calendar className="w-4 h-4 mr-2" />
-                    Book Now
+                    {user ? "Book Now" : "Continue to Payment"}
                   </Button>
+                  {!user && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      You can book as a guest or{" "}
+                      <a href="/login" className="text-primary hover:underline">
+                        login
+                      </a>{" "}
+                      to use your saved information
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -303,13 +347,24 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                           <span className="font-semibold text-sm">{review.user_name}</span>
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-current text-primary" />
-                            <span className="text-xs text-muted-foreground">{review.rating}/5</span>
+                            <span className="text-xs text-muted-foreground">{review.rating}/10</span>
                           </div>
                         </div>
                         <p className="text-sm">{review.comment}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </p>
+                          {review.stay_start_date && review.stay_end_date && (
+                            <>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <p className="text-xs text-muted-foreground">
+                                Stay: {new Date(review.stay_start_date).toLocaleDateString("en-GB")} -{" "}
+                                {new Date(review.stay_end_date).toLocaleDateString("en-GB")}
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))

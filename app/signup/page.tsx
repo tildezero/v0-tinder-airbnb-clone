@@ -14,7 +14,9 @@ import { Home, User } from "lucide-react"
 export default function SignupPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    middleInitial: "",
     username: "",
     email: "",
     password: "",
@@ -23,6 +25,9 @@ export default function SignupPage() {
     dob: "",
     bio: "",
     address: "",
+    driverLicense: "",
+    driverLicenseState: "",
+    defaultCreditCard: "",
   })
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -33,7 +38,7 @@ export default function SignupPage() {
     setIsSubmitting(true)
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       setError("Please fill in all required fields")
       setIsSubmitting(false)
       return
@@ -61,9 +66,13 @@ export default function SignupPage() {
       }
 
       // Create new user
+      const fullName = `${formData.firstName}${formData.middleInitial ? ` ${formData.middleInitial}.` : ""} ${formData.lastName}`.trim()
       const newUser = {
         id: Date.now().toString(),
-        name: formData.name,
+        name: fullName,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_initial: formData.middleInitial || null,
         username: formData.username || formData.email.split("@")[0],
         email: formData.email,
         password: formData.password,
@@ -71,6 +80,9 @@ export default function SignupPage() {
         dob: formData.dob || null,
         bio: formData.bio || null,
         address: formData.address || null,
+        driver_license: formData.driverLicense || null,
+        driver_license_state: formData.driverLicenseState || null,
+        default_credit_card: formData.account_type === "renter" ? (formData.defaultCreditCard || null) : null,
       }
 
       await api.createUser(newUser)
@@ -126,29 +138,55 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
-                  id="name"
+                  id="firstName"
                   type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="First name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="middleInitial">Middle Initial</Label>
                 <Input
-                  id="username"
+                  id="middleInitial"
                   type="text"
-                  placeholder="Choose a username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="M"
+                  maxLength={1}
+                  value={formData.middleInitial}
+                  onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value.toUpperCase() })}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Last name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Choose a username (cannot be changed later)"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Username cannot be changed after account creation</p>
             </div>
 
             <div className="space-y-2">
@@ -211,15 +249,58 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Mailing Address *</Label>
               <Textarea
                 id="address"
-                placeholder="Your address (optional)"
+                placeholder="Your full mailing address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="min-h-[80px]"
+                required
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="driverLicense">Driver's License Number *</Label>
+                <Input
+                  id="driverLicense"
+                  type="text"
+                  placeholder="Enter driver's license number"
+                  value={formData.driverLicense}
+                  onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="driverLicenseState">State *</Label>
+                <Input
+                  id="driverLicenseState"
+                  type="text"
+                  placeholder="State (e.g., CA, NY)"
+                  maxLength={2}
+                  value={formData.driverLicenseState}
+                  onChange={(e) => setFormData({ ...formData, driverLicenseState: e.target.value.toUpperCase() })}
+                  required
+                />
+              </div>
+            </div>
+
+            {formData.account_type === "renter" && (
+              <div className="space-y-2">
+                <Label htmlFor="defaultCreditCard">Default Credit Card *</Label>
+                <Input
+                  id="defaultCreditCard"
+                  type="text"
+                  placeholder="Enter credit card number"
+                  value={formData.defaultCreditCard}
+                  onChange={(e) => setFormData({ ...formData, defaultCreditCard: e.target.value })}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">This will be used as your default payment method</p>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? "Creating Account..." : "Create Account"}

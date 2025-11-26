@@ -52,7 +52,24 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json()
     const { id, ...updates } = data
 
-    const allowedFields = ["name", "username", "email", "password", "dob", "payment", "bio", "address", "avatar"]
+    const allowedFields = [
+      "name",
+      "username",
+      "email",
+      "password",
+      "dob",
+      "payment",
+      "bio",
+      "address",
+      "avatar",
+      "first_name",
+      "last_name",
+      "middle_initial",
+      "driver_license",
+      "driver_license_state",
+      "default_credit_card",
+      "account_type",
+    ]
     const updateFields = Object.keys(updates).filter((key) => allowedFields.includes(key))
 
     if (updateFields.length === 0) {

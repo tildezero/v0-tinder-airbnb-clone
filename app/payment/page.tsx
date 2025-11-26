@@ -23,6 +23,13 @@ export default function PaymentPage() {
     cvv: "",
     cardName: "",
   })
+  const [isGuestCheckout, setIsGuestCheckout] = useState(false)
+  const [guestInfo, setGuestInfo] = useState({
+    firstName: "",
+    lastName: "",
+    middleInitial: "",
+    email: "",
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
   const propertyId = searchParams.get("propertyId")
@@ -30,18 +37,18 @@ export default function PaymentPage() {
   const endDate = searchParams.get("endDate")
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
-
     if (!propertyId || !startDate || !endDate) {
       router.push("/search")
       return
     }
 
+    // Allow guest checkout - don't require login
+    if (!user) {
+      setIsGuestCheckout(true)
+    }
+
     loadProperty()
-  }, [propertyId, user, router])
+  }, [propertyId, router])
 
   const loadProperty = async () => {
     try {
@@ -62,7 +69,9 @@ export default function PaymentPage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-    const totalPrice = nights * prop.price
+    const subtotal = nights * prop.price
+    const tax = subtotal * 0.12 // 12% tax
+    const totalPrice = subtotal + tax
 
     setBooking({
       id: 0,
@@ -70,6 +79,8 @@ export default function PaymentPage() {
       renter_id: user?.id || "",
       start_date: startDate,
       end_date: endDate,
+      subtotal: subtotal,
+      tax: tax,
       total_price: totalPrice,
       status: "pending",
       created_at: new Date().toISOString(),
@@ -83,32 +94,42 @@ export default function PaymentPage() {
     e.preventDefault()
     if (!booking || !property) return
 
+    // Validate guest info if guest checkout
+    if (isGuestCheckout) {
+      if (!guestInfo.firstName || !guestInfo.lastName || !guestInfo.email) {
+        alert("Please fill in all required guest information")
+        return
+      }
+    }
+
     setIsProcessing(true)
 
     try {
-      // Create booking
+      // Create booking with tax calculation
       const newBooking = await api.createBooking({
         property_id: booking.property_id,
-        renter_id: booking.renter_id,
+        renter_id: user?.id || null,
         start_date: booking.start_date,
         end_date: booking.end_date,
-        total_price: booking.total_price,
+        subtotal: booking.subtotal || 0,
+        guest_first_name: isGuestCheckout ? guestInfo.firstName : null,
+        guest_last_name: isGuestCheckout ? guestInfo.lastName : null,
+        guest_middle_initial: isGuestCheckout ? guestInfo.middleInitial : null,
+        guest_email: isGuestCheckout ? guestInfo.email : null,
+        guest_credit_card: paymentData.cardNumber,
       })
 
       // Simulate payment processing delay
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Update booking status to confirmed
-      await api.updateBooking(newBooking.id, "confirmed")
-
-      router.push(`/booking-confirmed?id=${newBooking.id}`)
+      router.push(`/invoice?reservation=${newBooking.reservation_number}`)
     } catch (error: any) {
       alert(error.message || "Payment failed. Please try again.")
       setIsProcessing(false)
     }
   }
 
-  if (!user || !property || !booking) {
+  if (!property || !booking) {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader />
@@ -131,6 +152,53 @@ export default function PaymentPage() {
                 <Lock className="w-5 h-5" />
                 <h1 className="text-2xl font-bold">Secure Payment</h1>
               </div>
+
+              {isGuestCheckout && (
+                <div className="bg-muted p-4 rounded-lg mb-6">
+                  <h3 className="font-semibold mb-4">Guest Information</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input
+                        id="firstName"
+                        value={guestInfo.firstName}
+                        onChange={(e) => setGuestInfo({ ...guestInfo, firstName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        value={guestInfo.lastName}
+                        onChange={(e) => setGuestInfo({ ...guestInfo, lastName: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="middleInitial">Middle Initial</Label>
+                      <Input
+                        id="middleInitial"
+                        maxLength={1}
+                        value={guestInfo.middleInitial}
+                        onChange={(e) => setGuestInfo({ ...guestInfo, middleInitial: e.target.value.toUpperCase() })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="guestEmail">Email *</Label>
+                      <Input
+                        id="guestEmail"
+                        type="email"
+                        value={guestInfo.email}
+                        onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handlePayment} className="space-y-6">
                 <div className="space-y-2">
@@ -243,6 +311,14 @@ export default function PaymentPage() {
                 <div className="flex justify-between text-sm">
                   <span>Price per night:</span>
                   <span className="font-semibold">${property.price}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
+                  <span>Subtotal:</span>
+                  <span className="font-semibold">${(booking.subtotal || booking.total_price).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax (12%):</span>
+                  <span className="font-semibold">${(booking.tax || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t border-border pt-2 mt-2">
                   <span>Total:</span>

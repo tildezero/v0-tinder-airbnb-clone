@@ -15,7 +15,10 @@ export default function SearchPage() {
   const { user } = useApp()
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
-  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null)
+  const [checkInDate, setCheckInDate] = useState("")
+  const [checkOutDate, setCheckOutDate] = useState("")
+  const [bedroomsFilter, setBedroomsFilter] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "zip_asc" | "zip_desc" | "rating_desc" | null>(null)
   const [minRating, setMinRating] = useState<number | null>(null)
   const [zipFilter, setZipFilter] = useState<string>("")
   const [allProperties, setAllProperties] = useState<Property[]>([])
@@ -41,24 +44,55 @@ export default function SearchPage() {
 
   const filteredProperties = allProperties
     .filter((property) => {
-      // Search by location
+      // Search by location/destination
       if (searchQuery && !property.location.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
+      
+      // Filter by check-in/check-out dates (check if property is available)
+      if (checkInDate && checkOutDate) {
+        const hasAvailableDates = property.availability?.some((avail) => {
+          const availStart = new Date(avail.start_date)
+          const availEnd = new Date(avail.end_date)
+          const checkIn = new Date(checkInDate)
+          const checkOut = new Date(checkOutDate)
+          
+          return checkIn >= availStart && checkOut <= availEnd && avail.is_available === 1
+        })
+        if (!hasAvailableDates) return false
+      }
+      
+      // Filter by number of bedrooms
+      if (bedroomsFilter && property.bedrooms < bedroomsFilter) {
+        return false
+      }
+      
       // Filter by rating
       if (minRating && property.rating < minRating) {
         return false
       }
-      // Filter by zip code (simple contains check)
-      if (zipFilter && !property.location.toLowerCase().includes(zipFilter.toLowerCase())) {
+      
+      // Filter by zip code
+      if (zipFilter && property.zip_code && !property.zip_code.includes(zipFilter)) {
         return false
       }
+      
       return true
     })
     .sort((a, b) => {
-      // Sort by price
-      if (priceSort === "asc") return a.price - b.price
-      if (priceSort === "desc") return b.price - a.price
+      if (sortBy === "price_asc") return a.price - b.price
+      if (sortBy === "price_desc") return b.price - a.price
+      if (sortBy === "zip_asc") {
+        const zipA = a.zip_code || ""
+        const zipB = b.zip_code || ""
+        return zipA.localeCompare(zipB)
+      }
+      if (sortBy === "zip_desc") {
+        const zipA = a.zip_code || ""
+        const zipB = b.zip_code || ""
+        return zipB.localeCompare(zipA)
+      }
+      if (sortBy === "rating_desc") return b.rating - a.rating
       return 0
     })
 
@@ -86,51 +120,117 @@ export default function SearchPage() {
       <AppHeader />
 
       <main className="container mx-auto px-6 py-8">
-        <div className="flex gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Search Listings by Location"
-              className="pl-10 bg-card"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                handleFilterChange()
-              }}
-            />
-          </div>
+        <div className="bg-card rounded-xl border border-border p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Search Filters</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Destination</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Enter destination..."
+                  className="pl-10 bg-input"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    handleFilterChange()
+                  }}
+                />
+              </div>
+            </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Check-in Date</label>
+              <Input
+                type="date"
+                className="bg-input"
+                value={checkInDate}
+                onChange={(e) => {
+                  setCheckInDate(e.target.value)
+                  handleFilterChange()
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Check-out Date</label>
+              <Input
+                type="date"
+                className="bg-input"
+                min={checkInDate || undefined}
+                value={checkOutDate}
+                onChange={(e) => {
+                  setCheckOutDate(e.target.value)
+                  handleFilterChange()
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Bedrooms</label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start bg-input">
+                    <Bed className="w-4 h-4 mr-2" />
+                    {bedroomsFilter ? `${bedroomsFilter}+ bedrooms` : "Any"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => { setBedroomsFilter(null); handleFilterChange() }}>
+                    Any
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setBedroomsFilter(1); handleFilterChange() }}>
+                    1+ bedrooms
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setBedroomsFilter(2); handleFilterChange() }}>
+                    2+ bedrooms
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setBedroomsFilter(3); handleFilterChange() }}>
+                    3+ bedrooms
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setBedroomsFilter(4); handleFilterChange() }}>
+                    4+ bedrooms
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mb-8 flex-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2 bg-transparent">
                 <Calendar className="w-4 h-4" />
-                Daily Rate
-                {priceSort && <span className="text-xs">({priceSort === "asc" ? "Low-High" : "High-Low"})</span>}
+                Sort By
+                {sortBy && (
+                  <span className="text-xs">
+                    ({sortBy === "price_asc" ? "Price: Low-High" : 
+                      sortBy === "price_desc" ? "Price: High-Low" :
+                      sortBy === "zip_asc" ? "Zip: A-Z" :
+                      sortBy === "zip_desc" ? "Zip: Z-A" :
+                      sortBy === "rating_desc" ? "Rating: High-Low" : ""})
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => {
-                  setPriceSort("asc")
-                  handleFilterChange()
-                }}
-              >
-                Price: Low to High
+              <DropdownMenuItem onClick={() => { setSortBy("price_asc"); handleFilterChange() }}>
+                Daily Rate: Low to High
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setPriceSort("desc")
-                  handleFilterChange()
-                }}
-              >
-                Price: High to Low
+              <DropdownMenuItem onClick={() => { setSortBy("price_desc"); handleFilterChange() }}>
+                Daily Rate: High to Low
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setPriceSort(null)
-                  handleFilterChange()
-                }}
-              >
+              <DropdownMenuItem onClick={() => { setSortBy("zip_asc"); handleFilterChange() }}>
+                Zip Code: A to Z
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortBy("zip_desc"); handleFilterChange() }}>
+                Zip Code: Z to A
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortBy("rating_desc"); handleFilterChange() }}>
+                Rating: High to Low
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortBy(null); handleFilterChange() }}>
                 Clear Sort
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -145,36 +245,16 @@ export default function SearchPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => {
-                  setMinRating(4.5)
-                  handleFilterChange()
-                }}
-              >
+              <DropdownMenuItem onClick={() => { setMinRating(4.5); handleFilterChange() }}>
                 4.5+ Stars
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setMinRating(4.0)
-                  handleFilterChange()
-                }}
-              >
+              <DropdownMenuItem onClick={() => { setMinRating(4.0); handleFilterChange() }}>
                 4.0+ Stars
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setMinRating(3.5)
-                  handleFilterChange()
-                }}
-              >
+              <DropdownMenuItem onClick={() => { setMinRating(3.5); handleFilterChange() }}>
                 3.5+ Stars
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setMinRating(null)
-                  handleFilterChange()
-                }}
-              >
+              <DropdownMenuItem onClick={() => { setMinRating(null); handleFilterChange() }}>
                 Clear Filter
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -219,20 +299,32 @@ export default function SearchPage() {
           {displayedProperties.map((property, index) => (
             <Link
               key={property.id}
-              href={`/listing/${property.id}`}
+              href={`/listing/${property.id}${checkInDate ? `?checkIn=${checkInDate}&checkOut=${checkOutDate}` : ""}`}
               className="bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-shadow"
             >
               <div className="p-4">
-                <h3 className="font-semibold mb-1">Listing {startIndex + index + 1}</h3>
+                <h3 className="font-semibold mb-1">{property.title}</h3>
                 <p className="text-sm text-muted-foreground mb-4">{property.location}</p>
 
-                <div className="aspect-video bg-muted rounded-lg mb-4" />
+                <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
+                  {property.images && property.images.length > 0 ? (
+                    <img
+                      src={property.images[0]}
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                      No Image
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       <Bed className="w-4 h-4" />
-                      <span>{property.guests} beds</span>
+                      <span>{property.bedrooms} bed{property.bedrooms !== 1 ? "s" : ""}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Bath className="w-4 h-4" />
@@ -240,7 +332,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-current" />
-                      <span>{property.rating}/5 stars</span>
+                      <span>{property.rating.toFixed(1)}/10 stars</span>
                     </div>
                   </div>
                   <span className="font-semibold">${property.price}/night</span>
@@ -249,6 +341,28 @@ export default function SearchPage() {
             </Link>
           ))}
         </div>
+
+        {displayedProperties.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No properties found matching your criteria.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setSearchQuery("")
+                setCheckInDate("")
+                setCheckOutDate("")
+                setBedroomsFilter(null)
+                setSortBy(null)
+                setMinRating(null)
+                setZipFilter("")
+                handleFilterChange()
+              }}
+            >
+              Clear All Filters
+            </Button>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">

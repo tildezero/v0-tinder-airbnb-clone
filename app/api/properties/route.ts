@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
         ...property,
         images,
         availability,
+        host: property.host_name || property.host || "Unknown", // Map host_name to host for compatibility
       }
     })
 

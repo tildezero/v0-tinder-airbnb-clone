@@ -12,6 +12,12 @@ export interface User {
   avatar?: string
   rating: number
   age?: number
+  first_name?: string
+  last_name?: string
+  middle_initial?: string
+  driver_license?: string
+  driver_license_state?: string
+  default_credit_card?: string
 }
 
 export interface Availability {
@@ -66,15 +72,23 @@ export interface Request {
 export interface Booking {
   id: number
   property_id: number
-  renter_id: string
+  renter_id?: string
   start_date: string
   end_date: string
   total_price: number
+  subtotal?: number
+  tax?: number
   status: "pending" | "confirmed" | "cancelled" | "completed"
   created_at: string
   property_title?: string
   location?: string
   images?: string[]
+  reservation_number?: string
+  guest_first_name?: string
+  guest_last_name?: string
+  guest_middle_initial?: string
+  guest_email?: string
+  guest_credit_card?: string
 }
 
 export interface Review {
@@ -82,9 +96,12 @@ export interface Review {
   propertyId: number
   userId: string
   userName: string
-  rating: number
+  rating: number // 1-10 stars
   comment: string
   createdAt: string
+  reservation_number: string
+  stay_start_date?: string
+  stay_end_date?: string
 }
 
 export interface Listing {

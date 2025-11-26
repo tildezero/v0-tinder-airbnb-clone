@@ -30,19 +30,47 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { id, property_id, user_id, user_name, rating, comment } = data
+    const {
+      id,
+      property_id,
+      user_id,
+      user_name,
+      rating,
+      comment,
+      reservation_number,
+      stay_start_date,
+      stay_end_date,
+    } = data
+
+    if (!reservation_number) {
+      return NextResponse.json({ error: "Reservation number is required" }, { status: 400 })
+    }
 
     const stmt = db.prepare(`
-      INSERT INTO reviews (id, property_id, user_id, user_name, rating, comment)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO reviews (id, property_id, user_id, user_name, rating, comment, reservation_number, stay_start_date, stay_end_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
-    stmt.run(id, property_id, user_id, user_name, rating, comment)
+    stmt.run(
+      id,
+      property_id,
+      user_id,
+      user_name,
+      rating,
+      comment,
+      reservation_number,
+      stay_start_date || null,
+      stay_end_date || null
+    )
 
-    // Update property rating
-    const propertyReviews = db.prepare("SELECT rating FROM reviews WHERE property_id = ?").all(property_id) as any[]
+    // Update property rating (average of all reviews, 1-10 scale)
+    const propertyReviews = db
+      .prepare("SELECT rating FROM reviews WHERE property_id = ?")
+      .all(property_id) as any[]
     const avgRating =
-      propertyReviews.reduce((sum, r) => sum + r.rating, 0) / propertyReviews.length
+      propertyReviews.length > 0
+        ? propertyReviews.reduce((sum, r) => sum + r.rating, 0) / propertyReviews.length
+        : 0
 
     db.prepare("UPDATE properties SET rating = ?, reviews = ? WHERE id = ?").run(
       avgRating,
