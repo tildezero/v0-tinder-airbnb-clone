@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Send, Upload, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Send, Upload, X, Plus, Calendar } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useApp } from "@/lib/context"
-import { storage } from "@/lib/storage"
-import { properties } from "@/lib/properties-data"
-import type { Property } from "@/lib/types"
+import { api } from "@/lib/api"
+import type { Availability } from "@/lib/types"
 
 export default function PostListingPage() {
   const router = useRouter()
@@ -28,11 +27,19 @@ export default function PostListingPage() {
   })
   const [images, setImages] = useState<string[]>([])
   const [imageIndex, setImageIndex] = useState(0)
+  const [availability, setAvailability] = useState<Availability[]>([])
+  const [newAvailability, setNewAvailability] = useState({ start_date: "", end_date: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!user) {
       router.push("/login")
+      return
+    }
+
+    if (user.account_type !== "homeowner") {
+      router.push("/search")
+      return
     }
   }, [user, router])
 
@@ -58,9 +65,32 @@ export default function PostListingPage() {
     }
   }
 
+  const addAvailability = () => {
+    if (newAvailability.start_date && newAvailability.end_date) {
+      if (new Date(newAvailability.start_date) >= new Date(newAvailability.end_date)) {
+        alert("End date must be after start date")
+        return
+      }
+      setAvailability([
+        ...availability,
+        {
+          property_id: 0,
+          start_date: newAvailability.start_date,
+          end_date: newAvailability.end_date,
+          is_available: 1,
+        },
+      ])
+      setNewAvailability({ start_date: "", end_date: "" })
+    }
+  }
+
+  const removeAvailability = (index: number) => {
+    setAvailability(availability.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!user) {
       alert("Please log in to post a listing")
       return
@@ -78,51 +108,48 @@ export default function PostListingPage() {
 
     setIsSubmitting(true)
 
-    // Create new property
-    const existingProperties = storage.getProperties()
-    const maxId = existingProperties.length > 0 
-      ? Math.max(...existingProperties.map(p => p.id))
-      : Math.max(...properties.map(p => p.id))
+    try {
+      await api.createProperty({
+        title: formData.title,
+        location: formData.location,
+        price: Number.parseFloat(formData.price),
+        guests: Number.parseInt(formData.guests) || 1,
+        bedrooms: Number.parseInt(formData.bedrooms),
+        bathrooms: Number.parseInt(formData.bathrooms),
+        images: images,
+        host_id: user.id,
+        host_name: user.name,
+        description: formData.description || null,
+        address: formData.address || null,
+        zip_code: null,
+        availability: availability,
+      })
 
-    const newProperty: Property = {
-      id: maxId + 1,
-      title: formData.title,
-      location: formData.location,
-      price: Number.parseFloat(formData.price),
-      rating: 0,
-      reviews: 0,
-      guests: Number.parseInt(formData.guests) || 1,
-      bedrooms: Number.parseInt(formData.bedrooms),
-      bathrooms: Number.parseInt(formData.bathrooms),
-      images: images,
-      host: user.name,
-      hostId: user.id,
-      description: formData.description,
-      address: formData.address,
+      // Reset form
+      setFormData({
+        title: "",
+        bedrooms: "",
+        bathrooms: "",
+        address: "",
+        description: "",
+        price: "",
+        location: "",
+        guests: "",
+      })
+      setImages([])
+      setImageIndex(0)
+      setAvailability([])
+
+      alert("Listing published successfully!")
+      router.push("/my-listings")
+    } catch (error: any) {
+      alert(error.message || "Failed to create listing. Please try again.")
+    } finally {
+      setIsSubmitting(false)
     }
-
-    storage.addProperty(newProperty)
-
-    // Reset form
-    setFormData({
-      title: "",
-      bedrooms: "",
-      bathrooms: "",
-      address: "",
-      description: "",
-      price: "",
-      location: "",
-      guests: "",
-    })
-    setImages([])
-    setImageIndex(0)
-
-    setIsSubmitting(false)
-    alert("Listing published successfully!")
-    router.push("/search")
   }
 
-  if (!user) {
+  if (!user || user.account_type !== "homeowner") {
     return null
   }
 
@@ -240,6 +267,59 @@ export default function PostListingPage() {
                     className="bg-input min-h-[120px]"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Availability Dates</Label>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="date"
+                        placeholder="Start date"
+                        value={newAvailability.start_date}
+                        onChange={(e) => setNewAvailability({ ...newAvailability, start_date: e.target.value })}
+                        className="bg-input"
+                      />
+                      <Input
+                        type="date"
+                        placeholder="End date"
+                        value={newAvailability.end_date}
+                        onChange={(e) => setNewAvailability({ ...newAvailability, end_date: e.target.value })}
+                        className="bg-input"
+                      />
+                    </div>
+                    <Button type="button" onClick={addAvailability} variant="outline" size="sm" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Availability Period
+                    </Button>
+                  </div>
+
+                  {availability.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {availability.map((avail, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-muted rounded-lg text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(avail.start_date).toLocaleDateString()} -{" "}
+                              {new Date(avail.end_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAvailability(index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -308,12 +388,7 @@ export default function PostListingPage() {
                   </p>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full gap-2"
-                  size="lg"
-                  disabled={isSubmitting}
-                >
+                <Button type="submit" className="w-full gap-2" size="lg" disabled={isSubmitting}>
                   <Send className="w-4 h-4" />
                   {isSubmitting ? "Publishing..." : "Publish!"}
                 </Button>

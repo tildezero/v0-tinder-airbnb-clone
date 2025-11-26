@@ -5,7 +5,7 @@ import { Check, X, Star, User, Home } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/lib/context"
-import { storage } from "@/lib/storage"
+import { api } from "@/lib/api"
 import type { Request } from "@/lib/types"
 import { useRouter } from "next/navigation"
 
@@ -14,6 +14,7 @@ export default function RequestsPage() {
   const router = useRouter()
   const [requests, setRequests] = useState<Request[]>([])
   const [currentRequestIndex, setCurrentRequestIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (!user) {
@@ -21,46 +22,73 @@ export default function RequestsPage() {
       return
     }
 
-    // Get all pending requests for properties owned by current user
-    const allRequests = storage.getRequests()
-    const userProperties = storage.getProperties().filter((p) => p.hostId === user.id)
-    const userPropertyIds = userProperties.map((p) => p.id)
-    
-    const pendingRequests = allRequests.filter(
-      (r) => r.status === "pending" && userPropertyIds.includes(r.propertyId)
-    )
-    
-    setRequests(pendingRequests)
+    if (user.account_type !== "homeowner") {
+      router.push("/search")
+      return
+    }
+
+    loadRequests()
   }, [user, router])
+
+  const loadRequests = async () => {
+    try {
+      setIsLoading(true)
+      const allRequests = await api.getRequests(user?.id)
+      setRequests(allRequests)
+    } catch (error) {
+      console.error("Failed to load requests:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const currentRequest = requests[currentRequestIndex]
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!currentRequest) return
-    
-    storage.updateRequest(currentRequest.id, { status: "accepted" })
-    const updated = requests.filter((r) => r.id !== currentRequest.id)
-    setRequests(updated)
-    
-    if (updated.length > 0) {
-      setCurrentRequestIndex(Math.min(currentRequestIndex, updated.length - 1))
+
+    try {
+      await api.updateRequest(currentRequest.id, "accepted")
+      const updated = requests.filter((r) => r.id !== currentRequest.id)
+      setRequests(updated)
+
+      if (updated.length > 0) {
+        setCurrentRequestIndex(Math.min(currentRequestIndex, updated.length - 1))
+      }
+    } catch (error) {
+      alert("Failed to accept request. Please try again.")
     }
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!currentRequest) return
-    
-    storage.updateRequest(currentRequest.id, { status: "rejected" })
-    const updated = requests.filter((r) => r.id !== currentRequest.id)
-    setRequests(updated)
-    
-    if (updated.length > 0) {
-      setCurrentRequestIndex(Math.min(currentRequestIndex, updated.length - 1))
+
+    try {
+      await api.updateRequest(currentRequest.id, "rejected")
+      const updated = requests.filter((r) => r.id !== currentRequest.id)
+      setRequests(updated)
+
+      if (updated.length > 0) {
+        setCurrentRequestIndex(Math.min(currentRequestIndex, updated.length - 1))
+      }
+    } catch (error) {
+      alert("Failed to reject request. Please try again.")
     }
   }
 
-  if (!user) {
+  if (!user || user.account_type !== "homeowner") {
     return null
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto px-6 py-8 max-w-4xl">
+          <p className="text-center text-muted-foreground">Loading requests...</p>
+        </main>
+      </div>
+    )
   }
 
   if (requests.length === 0) {
@@ -76,6 +104,11 @@ export default function RequestsPage() {
       </div>
     )
   }
+
+  const request = currentRequest
+  const propertyTitle = request.property_title || request.propertyTitle || "Unknown Property"
+  const requesterName = request.requester_name || request.requesterName || "Unknown"
+  const requesterRating = request.requester_rating || request.requesterRating || 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,7 +127,7 @@ export default function RequestsPage() {
             <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
               <span className="text-4xl">👤</span>
             </div>
-            <h2 className="text-2xl font-bold">{currentRequest.requesterName}</h2>
+            <h2 className="text-2xl font-bold">{requesterName}</h2>
           </div>
 
           <div className="space-y-4 mb-8">
@@ -103,16 +136,16 @@ export default function RequestsPage() {
                 <Star className="w-5 h-5" />
                 <span>User Rating</span>
               </div>
-              <span className="font-semibold">{currentRequest.requesterRating}/5</span>
+              <span className="font-semibold">{requesterRating}/5</span>
             </div>
 
-            {currentRequest.requesterAge && (
+            {request.requester_age && (
               <div className="flex items-center justify-between py-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <User className="w-5 h-5" />
                   <span>User Age</span>
                 </div>
-                <span className="font-semibold">{currentRequest.requesterAge} y/o</span>
+                <span className="font-semibold">{request.requester_age} y/o</span>
               </div>
             )}
 
@@ -121,13 +154,13 @@ export default function RequestsPage() {
                 <Home className="w-5 h-5" />
                 <span>Property Requested</span>
               </div>
-              <span className="font-semibold">{currentRequest.propertyTitle}</span>
+              <span className="font-semibold">{propertyTitle}</span>
             </div>
           </div>
 
           <div className="mb-8">
             <h3 className="text-xl font-bold mb-4">Text of Request</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">{currentRequest.message}</p>
+            <p className="text-muted-foreground whitespace-pre-wrap">{request.message}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

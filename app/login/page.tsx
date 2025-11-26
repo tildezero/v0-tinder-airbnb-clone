@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useApp } from "@/lib/context"
-import { storage } from "@/lib/storage"
+import { api } from "@/lib/api"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,36 +17,41 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setIsLoading(true)
     
     if (!email || !password) {
       setError("Please enter both email and password")
+      setIsLoading(false)
       return
     }
 
-    const savedUser = storage.getUser()
-    
-    // Check if user exists
-    if (!savedUser || savedUser.email !== email) {
-      // New user - redirect to signup
-      router.push("/signup")
-      return
-    }
+    try {
+      // Check if user exists
+      const savedUser = await api.getUser(email)
+      
+      if (!savedUser) {
+        // New user - redirect to signup
+        router.push("/signup")
+        setIsLoading(false)
+        return
+      }
 
-    // Check password
-    if (savedUser.password !== password) {
-      setError("Invalid email or password")
-      return
-    }
-
-    // Login successful
-    if (login(email, password)) {
-      router.push("/swipe")
-    } else {
-      setError("Login failed")
+      // Login
+      const success = await login(email, password)
+      if (success) {
+        router.push("/swipe")
+      } else {
+        setError("Invalid email or password")
+      }
+    } catch (err) {
+      setError("Login failed. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -89,8 +94,8 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Login
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
             </Button>
 
             <Button type="button" variant="outline" className="w-full bg-transparent" size="lg">

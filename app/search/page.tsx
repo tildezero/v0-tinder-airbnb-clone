@@ -6,22 +6,36 @@ import { Search, Calendar, Star, MapPin, Bed, Bath, ChevronLeft, ChevronRight } 
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { properties as defaultProperties } from "@/lib/properties-data"
-import { storage } from "@/lib/storage"
+import { api } from "@/lib/api"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useApp } from "@/lib/context"
+import type { Property } from "@/lib/types"
 
 export default function SearchPage() {
+  const { user } = useApp()
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null)
   const [minRating, setMinRating] = useState<number | null>(null)
   const [zipFilter, setZipFilter] = useState<string>("")
-  const [allProperties, setAllProperties] = useState(defaultProperties)
+  const [allProperties, setAllProperties] = useState<Property[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const userProperties = storage.getProperties()
-    setAllProperties([...defaultProperties, ...userProperties])
+    loadProperties()
   }, [])
+
+  const loadProperties = async () => {
+    try {
+      setIsLoading(true)
+      const properties = await api.getProperties()
+      setAllProperties(properties)
+    } catch (error) {
+      console.error("Failed to load properties:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const itemsPerPage = 9
 
@@ -54,6 +68,17 @@ export default function SearchPage() {
 
   const handleFilterChange = () => {
     setCurrentPage(1)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto px-6 py-8">
+          <p className="text-center text-muted-foreground">Loading properties...</p>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -211,7 +236,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Bath className="w-4 h-4" />
-                      <span>{property.bathrooms || 1} baths</span>
+                      <span>{property.bathrooms || 1} bath{property.bathrooms !== 1 ? "s" : ""}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-current" />

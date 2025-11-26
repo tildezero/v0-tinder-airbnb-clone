@@ -7,13 +7,14 @@ import { Bed, Bath, Star, MapPin, Plus } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/lib/context"
-import { storage } from "@/lib/storage"
+import { api } from "@/lib/api"
 import type { Property } from "@/lib/types"
 
 export default function MyListingsPage() {
   const router = useRouter()
   const { user } = useApp()
   const [myListings, setMyListings] = useState<Property[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (!user) {
@@ -21,13 +22,39 @@ export default function MyListingsPage() {
       return
     }
 
-    const allProperties = storage.getProperties()
-    const userProperties = allProperties.filter((p) => p.hostId === user.id)
-    setMyListings(userProperties)
+    if (user.account_type !== "homeowner") {
+      router.push("/search")
+      return
+    }
+
+    loadListings()
   }, [user, router])
 
-  if (!user) {
+  const loadListings = async () => {
+    try {
+      setIsLoading(true)
+      const properties = await api.getProperties(user?.id)
+      setMyListings(properties)
+    } catch (error) {
+      console.error("Failed to load listings:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!user || user.account_type !== "homeowner") {
     return null
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto px-6 py-8 max-w-4xl">
+          <p className="text-center text-muted-foreground">Loading listings...</p>
+        </main>
+      </div>
+    )
   }
 
   if (myListings.length === 0) {
@@ -120,4 +147,3 @@ export default function MyListingsPage() {
     </div>
   )
 }
-

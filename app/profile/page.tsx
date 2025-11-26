@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useApp } from "@/lib/context"
+import { api } from "@/lib/api"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, updateUser, logout } = useApp()
+  const { user, updateUser, logout, refreshUser } = useApp()
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -44,16 +45,19 @@ export default function ProfilePage() {
     })
   }, [user, router])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return
 
     setIsSaving(true)
-    updateUser(formData)
-    
-    setTimeout(() => {
-      setIsSaving(false)
+    try {
+      await updateUser(formData)
+      await refreshUser()
       alert("Profile updated successfully!")
-    }, 500)
+    } catch (error) {
+      alert("Failed to update profile. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = () => {

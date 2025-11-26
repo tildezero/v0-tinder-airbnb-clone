@@ -2,41 +2,124 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Bed, Bath, Star, SkipForward, Send } from "lucide-react"
+import { ChevronLeft, ChevronRight, Bed, Bath, Star, SkipForward, Send, Calendar } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { properties as defaultProperties } from "@/lib/properties-data"
-import { storage } from "@/lib/storage"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { api } from "@/lib/api"
 import { useApp } from "@/lib/context"
-import type { Review, Request } from "@/lib/types"
+import type { Review, Request, Property, Availability } from "@/lib/types"
 
 export default function ListingPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { user } = useApp()
-  const [allProperties, setAllProperties] = useState(defaultProperties)
-  const [property, setProperty] = useState(
-    defaultProperties.find((p) => p.id === Number.parseInt(params.id))
-  )
-
-  useEffect(() => {
-    const userProperties = storage.getProperties()
-    const combined = [...defaultProperties, ...userProperties]
-    setAllProperties(combined)
-    const found = combined.find((p) => p.id === Number.parseInt(params.id))
-    setProperty(found)
-  }, [params.id])
+  const [property, setProperty] = useState<Property | null>(null)
   const [comment, setComment] = useState("")
   const [imageIndex, setImageIndex] = useState(0)
   const [reviews, setReviews] = useState<Review[]>([])
   const [requestSubmitted, setRequestSubmitted] = useState(false)
+  const [selectedDates, setSelectedDates] = useState({ start_date: "", end_date: "" })
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (property) {
-      const propertyReviews = storage.getReviewsByPropertyId(property.id)
-      setReviews(propertyReviews)
+    loadProperty()
+  }, [params.id])
+
+  const loadProperty = async () => {
+    try {
+      setIsLoading(true)
+      const properties = await api.getProperties()
+      const found = properties.find((p: Property) => p.id === Number.parseInt(params.id))
+      if (found) {
+        setProperty(found)
+        loadReviews(found.id)
+      }
+    } catch (error) {
+      console.error("Failed to load property:", error)
+    } finally {
+      setIsLoading(false)
     }
-  }, [property])
+  }
+
+  const loadReviews = async (propertyId: number) => {
+    try {
+      const propertyReviews = await api.getReviews(propertyId.toString())
+      setReviews(propertyReviews)
+    } catch (error) {
+      console.error("Failed to load reviews:", error)
+    }
+  }
+
+  const handleSubmitRequest = async () => {
+    if (!user || !property) {
+      alert("Please log in")
+      return
+    }
+
+    if (!comment.trim()) {
+      alert("Please add a message")
+      return
+    }
+
+    try {
+      await api.createRequest({
+        id: Date.now().toString(),
+        property_id: property.id,
+        property_title: property.title,
+        requester_id: user.id,
+        requester_name: user.name,
+        requester_rating: user.rating,
+        requester_age: user.age,
+        message: comment,
+      })
+
+      setComment("")
+      setRequestSubmitted(true)
+      setTimeout(() => setRequestSubmitted(false), 3000)
+    } catch (error) {
+      alert("Failed to submit request. Please try again.")
+    }
+  }
+
+  const handleBook = () => {
+    if (!selectedDates.start_date || !selectedDates.end_date) {
+      alert("Please select check-in and check-out dates")
+      return
+    }
+
+    if (new Date(selectedDates.start_date) >= new Date(selectedDates.end_date)) {
+      alert("Check-out date must be after check-in date")
+      return
+    }
+
+    router.push(
+      `/payment?propertyId=${property?.id}&startDate=${selectedDates.start_date}&endDate=${selectedDates.end_date}`
+    )
+  }
+
+  const handleNextListing = async () => {
+    try {
+      const properties = await api.getProperties()
+      const currentIndex = properties.findIndex((p: Property) => p.id === property?.id)
+      const nextProperty = properties[(currentIndex + 1) % properties.length]
+      router.push(`/listing/${nextProperty.id}`)
+    } catch (error) {
+      console.error("Failed to load next property:", error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto px-6 py-8">
+          <p className="text-center text-muted-foreground">Loading...</p>
+        </main>
+      </div>
+    )
+  }
 
   if (!property) {
     return (
@@ -52,56 +135,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const handleSubmitRequest = () => {
-    if (!user || !comment.trim()) {
-      alert("Please log in and add a comment")
-      return
-    }
-
-    const newRequest: Request = {
-      id: Date.now().toString(),
-      propertyId: property.id,
-      propertyTitle: property.title,
-      requesterId: user.id,
-      requesterName: user.name,
-      requesterRating: user.rating,
-      requesterAge: user.age,
-      message: comment,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    }
-
-    storage.addRequest(newRequest)
-    setComment("")
-    setRequestSubmitted(true)
-    setTimeout(() => setRequestSubmitted(false), 3000)
-  }
-
-  const handleAddReview = () => {
-    if (!user || !comment.trim()) {
-      return
-    }
-
-    const newReview: Review = {
-      id: Date.now().toString(),
-      propertyId: property.id,
-      userId: user.id,
-      userName: user.name,
-      rating: 5, // Default rating, could be made configurable
-      comment: comment,
-      createdAt: new Date().toISOString(),
-    }
-
-    storage.addReview(newReview)
-    setReviews([...reviews, newReview])
-    setComment("")
-  }
-
-  const handleNextListing = () => {
-    const currentIndex = allProperties.findIndex((p) => p.id === property.id)
-    const nextProperty = allProperties[(currentIndex + 1) % allProperties.length]
-    router.push(`/listing/${nextProperty.id}`)
-  }
+  const availableDates = property.availability?.filter((a) => a.is_available === 1) || []
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,6 +180,52 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+
+            {user?.account_type === "renter" && (
+              <div className="bg-card rounded-xl border border-border p-6">
+                <h2 className="text-xl font-bold mb-4">Book Your Stay</h2>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="checkin">Check-in Date</Label>
+                    <Input
+                      id="checkin"
+                      type="date"
+                      value={selectedDates.start_date}
+                      onChange={(e) => setSelectedDates({ ...selectedDates, start_date: e.target.value })}
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout">Check-out Date</Label>
+                    <Input
+                      id="checkout"
+                      type="date"
+                      value={selectedDates.end_date}
+                      onChange={(e) => setSelectedDates({ ...selectedDates, end_date: e.target.value })}
+                      min={selectedDates.start_date || new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+                  {selectedDates.start_date && selectedDates.end_date && (
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-sm">
+                        Total: $
+                        {(
+                          Math.ceil(
+                            (new Date(selectedDates.end_date).getTime() -
+                              new Date(selectedDates.start_date).getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          ) * property.price
+                        ).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  <Button className="w-full" onClick={handleBook} disabled={!user}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Book Now
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-1 space-y-6">
@@ -179,22 +259,26 @@ export default function ListingPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            <Textarea
-              placeholder="Leave a comment for the host"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="min-h-[120px] bg-card"
-            />
+            {user?.account_type === "renter" && (
+              <>
+                <Textarea
+                  placeholder="Leave a comment for the host"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="min-h-[120px] bg-card"
+                />
 
-            {requestSubmitted && (
-              <div className="p-3 bg-success/10 text-success rounded-md text-sm">
-                Request submitted successfully!
-              </div>
+                {requestSubmitted && (
+                  <div className="p-3 bg-success/10 text-success rounded-md text-sm">
+                    Request submitted successfully!
+                  </div>
+                )}
+
+                <Button className="w-full" size="lg" onClick={handleSubmitRequest}>
+                  Submit Request
+                </Button>
+              </>
             )}
-
-            <Button className="w-full" size="lg" onClick={handleSubmitRequest}>
-              Submit Request
-            </Button>
 
             <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={handleNextListing}>
               <SkipForward className="w-4 h-4 mr-2" />
@@ -216,7 +300,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">{review.userName}</span>
+                          <span className="font-semibold text-sm">{review.user_name}</span>
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-current text-primary" />
                             <span className="text-xs text-muted-foreground">{review.rating}/5</span>
@@ -224,7 +308,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                         </div>
                         <p className="text-sm">{review.comment}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(review.createdAt).toLocaleDateString()}
+                          {new Date(review.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

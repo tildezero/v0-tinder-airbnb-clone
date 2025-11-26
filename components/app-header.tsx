@@ -72,8 +72,12 @@ export function AppHeader() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>My Reviews</DropdownMenuItem>
-                  <DropdownMenuItem>Write a Review</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/reviews">My Reviews</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/write-review">Write a Review</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </nav>

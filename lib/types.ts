@@ -4,6 +4,7 @@ export interface User {
   username: string
   email: string
   password: string
+  account_type: "homeowner" | "renter"
   dob: string
   payment: string
   bio: string
@@ -11,6 +12,14 @@ export interface User {
   avatar?: string
   rating: number
   age?: number
+}
+
+export interface Availability {
+  id?: number
+  property_id: number
+  start_date: string
+  end_date: string
+  is_available?: number
 }
 
 export interface Property {
@@ -25,23 +34,47 @@ export interface Property {
   bathrooms: number
   images: string[]
   host: string
+  host_id: string
   hostId?: string
   description?: string
   address?: string
+  zip_code?: string
   zipCode?: string
+  availability?: Availability[]
 }
 
 export interface Request {
   id: string
-  propertyId: number
-  propertyTitle: string
-  requesterId: string
-  requesterName: string
-  requesterRating: number
+  property_id: number
+  propertyId?: number
+  property_title: string
+  propertyTitle?: string
+  requester_id: string
+  requesterId?: string
+  requester_name: string
+  requesterName?: string
+  requester_rating: number
+  requesterRating?: number
+  requester_age?: number
   requesterAge?: number
   message: string
   status: "pending" | "accepted" | "rejected"
-  createdAt: string
+  created_at: string
+  createdAt?: string
+}
+
+export interface Booking {
+  id: number
+  property_id: number
+  renter_id: string
+  start_date: string
+  end_date: string
+  total_price: number
+  status: "pending" | "confirmed" | "cancelled" | "completed"
+  created_at: string
+  property_title?: string
+  location?: string
+  images?: string[]
 }
 
 export interface Review {

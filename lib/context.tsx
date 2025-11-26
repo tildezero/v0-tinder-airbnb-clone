@@ -2,14 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import type { User } from "./types"
-import { storage } from "./storage"
+import { api } from "./api"
 
 interface AppContextType {
   user: User | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => boolean
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
-  updateUser: (userData: Partial<User>) => void
+  updateUser: (userData: Partial<User>) => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -18,35 +19,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const savedUser = storage.getUser()
-    if (savedUser) {
-      setUser(savedUser)
+    // Try to get user from sessionStorage on mount
+    if (typeof window !== "undefined") {
+      const savedUser = sessionStorage.getItem("bumblebnb_user")
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser))
+        } catch (e) {
+          sessionStorage.removeItem("bumblebnb_user")
+        }
+      }
     }
   }, [])
 
-  const login = (email: string, password: string): boolean => {
-    // Check against localStorage
-    const savedUser = storage.getUser()
-    
-    if (savedUser && savedUser.email === email && savedUser.password === password) {
-      setUser(savedUser)
-      return true
-    }
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const savedUser = await api.getUser(email)
 
-    return false
+      if (!savedUser) {
+        return false
+      }
+
+      // In a real app, password would be hashed and compared server-side
+      // For this demo, we're storing it in the database
+      if (savedUser.password !== password) {
+        return false
+      }
+
+      // Remove password before storing
+      const { password: _, ...userWithoutPassword } = savedUser
+      setUser(userWithoutPassword as User)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("bumblebnb_user", JSON.stringify(userWithoutPassword))
+      }
+      return true
+    } catch (error) {
+      return false
+    }
   }
 
   const logout = () => {
-    storage.clearUser()
     setUser(null)
-    // Router navigation should be handled in the component calling logout
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("bumblebnb_user")
+    }
   }
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (!user) return
-    const updatedUser = { ...user, ...userData }
-    storage.setUser(updatedUser)
-    setUser(updatedUser)
+    try {
+      const updated = await api.updateUser(user.id, userData)
+      const { password: _, ...userWithoutPassword } = updated
+      setUser(userWithoutPassword as User)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("bumblebnb_user", JSON.stringify(userWithoutPassword))
+      }
+    } catch (error) {
+      console.error("Failed to update user:", error)
+    }
+  }
+
+  const refreshUser = async () => {
+    if (!user) return
+    try {
+      const refreshed = await api.getUser(user.email)
+      if (refreshed) {
+        const { password: _, ...userWithoutPassword } = refreshed
+        setUser(userWithoutPassword as User)
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("bumblebnb_user", JSON.stringify(userWithoutPassword))
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error)
+    }
   }
 
   return (
@@ -57,6 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUser,
+        refreshUser,
       }}
     >
       {children}
@@ -71,4 +118,3 @@ export function useApp() {
   }
   return context
 }
-

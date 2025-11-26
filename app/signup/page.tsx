@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { storage } from "@/lib/storage"
-import type { User } from "@/lib/types"
+import { api } from "@/lib/api"
+import { Home, User } from "lucide-react"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -19,55 +19,66 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    account_type: "renter" as "homeowner" | "renter",
     dob: "",
     bio: "",
     address: "",
   })
   const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setIsSubmitting(true)
 
     // Validation
     if (!formData.name || !formData.email || !formData.password) {
       setError("Please fill in all required fields")
+      setIsSubmitting(false)
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
+      setIsSubmitting(false)
       return
     }
 
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters")
+      setIsSubmitting(false)
       return
     }
 
-    // Check if user already exists
-    const existingUser = storage.getUser()
-    if (existingUser && existingUser.email === formData.email) {
-      setError("An account with this email already exists")
-      return
-    }
+    try {
+      // Check if user already exists
+      const existingUser = await api.getUser(formData.email)
+      if (existingUser) {
+        setError("An account with this email already exists")
+        setIsSubmitting(false)
+        return
+      }
 
-    // Create new user
-    const newUser: User = {
-      id: Date.now().toString(),
-      name: formData.name,
-      username: formData.username || formData.email.split("@")[0],
-      email: formData.email,
-      password: formData.password,
-      dob: formData.dob,
-      payment: "",
-      bio: formData.bio,
-      address: formData.address,
-      rating: 0,
-    }
+      // Create new user
+      const newUser = {
+        id: Date.now().toString(),
+        name: formData.name,
+        username: formData.username || formData.email.split("@")[0],
+        email: formData.email,
+        password: formData.password,
+        account_type: formData.account_type,
+        dob: formData.dob || null,
+        bio: formData.bio || null,
+        address: formData.address || null,
+      }
 
-    storage.setUser(newUser)
-    router.push("/login")
+      await api.createUser(newUser)
+      router.push("/login")
+    } catch (err: any) {
+      setError(err.message || "Failed to create account. Please try again.")
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -83,6 +94,38 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSignup} className="space-y-6">
+            <div className="space-y-2">
+              <Label>Account Type *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, account_type: "renter" })}
+                  className={`p-4 border-2 rounded-lg transition-all ${
+                    formData.account_type === "renter"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <User className="w-8 h-8 mx-auto mb-2" />
+                  <p className="font-semibold">Renter</p>
+                  <p className="text-xs text-muted-foreground">Find and book properties</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, account_type: "homeowner" })}
+                  className={`p-4 border-2 rounded-lg transition-all ${
+                    formData.account_type === "homeowner"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <Home className="w-8 h-8 mx-auto mb-2" />
+                  <p className="font-semibold">Homeowner</p>
+                  <p className="text-xs text-muted-foreground">List and manage properties</p>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
@@ -178,8 +221,8 @@ export default function SignupPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Create Account
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
@@ -194,4 +237,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
