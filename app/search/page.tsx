@@ -149,7 +149,15 @@ export default function SearchPage() {
                   setCheckInDate(e.target.value)
                   handleFilterChange()
                 }}
+                min={(() => {
+                  const minDate = new Date()
+                  minDate.setDate(minDate.getDate() + 5) // 5 days from today
+                  return minDate.toISOString().split("T")[0]
+                })()}
               />
+              <p className="text-xs text-muted-foreground">
+                Must be at least 5 days from today
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -332,7 +340,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-current" />
-                      <span>{property.rating.toFixed(1)}/10 stars</span>
+                      <span>{property.rating.toFixed(1)}/5 stars</span>
                     </div>
                   </div>
                   <span className="font-semibold">${property.price}/night</span>

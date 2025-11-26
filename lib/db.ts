@@ -109,9 +109,30 @@ db.exec(`
     reservation_number TEXT NOT NULL,
     stay_start_date TEXT,
     stay_end_date TEXT,
+    review_type TEXT DEFAULT 'property' CHECK(review_type IN ('property', 'renter')),
+    reviewed_user_id TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (reviewed_user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS renter_reviews (
+    id TEXT PRIMARY KEY,
+    booking_id INTEGER NOT NULL,
+    property_id INTEGER NOT NULL,
+    renter_id TEXT NOT NULL,
+    renter_name TEXT NOT NULL,
+    homeowner_id TEXT NOT NULL,
+    homeowner_name TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    reservation_number TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+    FOREIGN KEY (renter_id) REFERENCES users(id),
+    FOREIGN KEY (homeowner_id) REFERENCES users(id)
   );
 `)
 
@@ -149,9 +170,36 @@ try {
     ALTER TABLE reviews ADD COLUMN reservation_number TEXT;
     ALTER TABLE reviews ADD COLUMN stay_start_date TEXT;
     ALTER TABLE reviews ADD COLUMN stay_end_date TEXT;
+    ALTER TABLE reviews ADD COLUMN review_type TEXT;
+    ALTER TABLE reviews ADD COLUMN reviewed_user_id TEXT;
   `)
 } catch (e) {
   // Columns already exist, ignore
+}
+
+// Create renter_reviews table if it doesn't exist (for migrations)
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS renter_reviews (
+      id TEXT PRIMARY KEY,
+      booking_id INTEGER NOT NULL,
+      property_id INTEGER NOT NULL,
+      renter_id TEXT NOT NULL,
+      renter_name TEXT NOT NULL,
+      homeowner_id TEXT NOT NULL,
+      homeowner_name TEXT NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      comment TEXT NOT NULL,
+      reservation_number TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+      FOREIGN KEY (renter_id) REFERENCES users(id),
+      FOREIGN KEY (homeowner_id) REFERENCES users(id)
+    );
+  `)
+} catch (e) {
+  // Table already exists, ignore
 }
 
 // Update existing bookings to have reservation numbers if they don't

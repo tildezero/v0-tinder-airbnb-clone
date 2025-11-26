@@ -89,6 +89,17 @@ export default function ListingPage({ params }: { params: { id: string } }) {
       return
     }
 
+    // Check if booking is at least 5 days in advance
+    const checkInDate = new Date(selectedDates.start_date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset time to start of day
+    const daysUntilCheckIn = Math.ceil((checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysUntilCheckIn < 5) {
+      alert("Bookings must be made at least 5 days in advance. Please select a check-in date that is at least 5 days from today.")
+      return
+    }
+
     if (new Date(selectedDates.start_date) >= new Date(selectedDates.end_date)) {
       alert("Check-out date must be after check-in date")
       return
@@ -178,33 +189,46 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                     <Star className="w-5 h-5" />
                     <span>Rating</span>
                   </div>
-                  <span className="font-semibold">{property.rating.toFixed(1)}/10</span>
+                  <span className="font-semibold">{property.rating.toFixed(1)}/5</span>
                 </div>
               </div>
             </div>
 
-            {user?.account_type === "renter" && (
+            {(user?.account_type === "renter" || !user) && (
               <div className="bg-card rounded-xl border border-border p-6">
                 <h2 className="text-xl font-bold mb-4">Book Your Stay</h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="checkin">Check-in Date</Label>
+                    <Label htmlFor="checkin">Check-in Date *</Label>
                     <Input
                       id="checkin"
                       type="date"
                       value={selectedDates.start_date}
                       onChange={(e) => setSelectedDates({ ...selectedDates, start_date: e.target.value })}
-                      min={new Date().toISOString().split("T")[0]}
+                      min={(() => {
+                        const minDate = new Date()
+                        minDate.setDate(minDate.getDate() + 5) // 5 days from today
+                        return minDate.toISOString().split("T")[0]
+                      })()}
+                      required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Bookings must be made at least 5 days in advance
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="checkout">Check-out Date</Label>
+                    <Label htmlFor="checkout">Check-out Date *</Label>
                     <Input
                       id="checkout"
                       type="date"
                       value={selectedDates.end_date}
                       onChange={(e) => setSelectedDates({ ...selectedDates, end_date: e.target.value })}
-                      min={selectedDates.start_date || new Date().toISOString().split("T")[0]}
+                      min={selectedDates.start_date || (() => {
+                        const minDate = new Date()
+                        minDate.setDate(minDate.getDate() + 5)
+                        return minDate.toISOString().split("T")[0]
+                      })()}
+                      required
                     />
                   </div>
                   {selectedDates.start_date && selectedDates.end_date && (
@@ -254,11 +278,20 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   )}
-                  <Button className="w-full" onClick={handleBook}>
+                  <Button 
+                    className="w-full" 
+                    onClick={handleBook}
+                    disabled={!selectedDates.start_date || !selectedDates.end_date}
+                  >
                     <Calendar className="w-4 h-4 mr-2" />
                     {user ? "Book Now" : "Continue to Payment"}
                   </Button>
-                  {!user && (
+                  {(!selectedDates.start_date || !selectedDates.end_date) && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Please select both check-in and check-out dates to continue
+                    </p>
+                  )}
+                  {!user && selectedDates.start_date && selectedDates.end_date && (
                     <p className="text-xs text-muted-foreground text-center mt-2">
                       You can book as a guest or{" "}
                       <a href="/login" className="text-primary hover:underline">
@@ -347,7 +380,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                           <span className="font-semibold text-sm">{review.user_name}</span>
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-current text-primary" />
-                            <span className="text-xs text-muted-foreground">{review.rating}/10</span>
+                            <span className="text-xs text-muted-foreground">{review.rating}/5</span>
                           </div>
                         </div>
                         <p className="text-sm">{review.comment}</p>

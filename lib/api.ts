@@ -125,5 +125,14 @@ export const api = {
     })
     return res.json()
   },
+
+  async createRenterReview(reviewData: any) {
+    const res = await fetch("/api/reviews/renter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reviewData),
+    })
+    return res.json()
+  },
 }
 

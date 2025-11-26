@@ -20,8 +20,21 @@ export async function GET(request: NextRequest) {
 
     query += " ORDER BY created_at DESC"
 
-    const reviews = db.prepare(query).all(...params)
-    return NextResponse.json(reviews)
+    const reviews = db.prepare(query).all(...params) as any[]
+    // Map database fields to match Review type
+    const mappedReviews = reviews.map((r) => ({
+      id: r.id,
+      propertyId: r.property_id,
+      userId: r.user_id,
+      userName: r.user_name,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.created_at,
+      reservation_number: r.reservation_number,
+      stay_start_date: r.stay_start_date,
+      stay_end_date: r.stay_end_date,
+    }))
+    return NextResponse.json(mappedReviews)
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 })
   }
@@ -63,7 +76,7 @@ export async function POST(request: NextRequest) {
       stay_end_date || null
     )
 
-    // Update property rating (average of all reviews, 1-10 scale)
+    // Update property rating (average of all reviews, 1-5 scale)
     const propertyReviews = db
       .prepare("SELECT rating FROM reviews WHERE property_id = ?")
       .all(property_id) as any[]
@@ -80,8 +93,9 @@ export async function POST(request: NextRequest) {
 
     const review = db.prepare("SELECT * FROM reviews WHERE id = ?").get(id)
     return NextResponse.json(review, { status: 201 })
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to create review" }, { status: 500 })
+  } catch (error: any) {
+    console.error("Review creation error:", error)
+    return NextResponse.json({ error: "Failed to create review: " + (error.message || "Unknown error") }, { status: 500 })
   }
 }
 

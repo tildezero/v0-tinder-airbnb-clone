@@ -24,15 +24,9 @@ export function AppHeader() {
   const handleSwitchAccountType = async () => {
     if (!user) return
     
-    const newType = user.account_type === "renter" ? "homeowner" : "renter"
-    try {
-      await updateUser({ account_type: newType })
-      await refreshUser()
-      // Reload the page to update UI based on new account type
-      window.location.reload()
-    } catch (error) {
-      alert("Failed to switch account type. Please try again.")
-    }
+    // Logout and redirect to login page
+    logout()
+    window.location.href = "/login"
   }
 
   return (
@@ -63,6 +57,24 @@ export function AppHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {user.account_type === "renter" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="gap-1">
+                      My Bookings <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-bookings">View All Bookings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/cancel-reservation">Cancel Reservation</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-1">
@@ -76,6 +88,11 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/my-listings">My Listings</Link>
                 </DropdownMenuItem>
+                {user.account_type === "homeowner" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-bookings-homeowner">Property Bookings</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
               </DropdownMenu>
 
@@ -138,16 +155,6 @@ export function AppHeader() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile">Edit Profile</Link>
                   </DropdownMenuItem>
-                  {user.account_type === "renter" && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/my-bookings">My Bookings</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/cancel-reservation">Cancel Reservation</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
                   <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

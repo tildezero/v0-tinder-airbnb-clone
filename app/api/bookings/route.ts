@@ -55,6 +55,19 @@ export async function POST(request: NextRequest) {
       guest_credit_card,
     } = data
 
+    // Check if booking is at least 5 days in advance
+    const checkInDate = new Date(start_date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset time to start of day
+    const daysUntilCheckIn = Math.ceil((checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysUntilCheckIn < 5) {
+      return NextResponse.json(
+        { error: "Bookings must be made at least 5 days in advance" },
+        { status: 400 }
+      )
+    }
+
     // Check if dates are available
     const conflictingBookings = db
       .prepare(
