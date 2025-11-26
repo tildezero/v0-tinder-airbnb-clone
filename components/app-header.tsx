@@ -75,26 +75,26 @@ export function AppHeader() {
                 </DropdownMenu>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-1">
-                    My Houses <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem asChild>
-                  <Link href="/post-listing">Post New Listing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/my-listings">My Listings</Link>
-                </DropdownMenuItem>
-                {user.account_type === "homeowner" && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/my-bookings-homeowner">Property Bookings</Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-              </DropdownMenu>
+              {user.account_type === "homeowner" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="gap-1">
+                      My Houses <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem asChild>
+                      <Link href="/post-listing">Post New Listing</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-listings">My Listings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/my-bookings-homeowner">Property Bookings</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

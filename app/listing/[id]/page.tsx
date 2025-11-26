@@ -159,6 +159,38 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="lg:col-span-1 space-y-6">
+            <div className="relative aspect-video bg-muted rounded-xl overflow-hidden">
+              <img
+                src={property.images[imageIndex] || "/placeholder.svg"}
+                alt={property.title}
+                className="w-full h-full object-cover"
+              />
+              {property.images.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-4 top-1/2 -translate-y-1/2"
+                    onClick={() =>
+                      setImageIndex((imageIndex - 1 + property.images.length) % property.images.length)
+                    }
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                    onClick={() => setImageIndex((imageIndex + 1) % property.images.length)}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </Button>
+                </>
+              )}
+            </div>
 
             {(user?.account_type === "renter" || !user) && (
               <div className="bg-card rounded-xl border border-border p-6">
@@ -269,38 +301,6 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="lg:col-span-1 space-y-6">
-            <div className="relative aspect-video bg-muted rounded-xl overflow-hidden">
-              <img
-                src={property.images[imageIndex] || "/placeholder.svg"}
-                alt={property.title}
-                className="w-full h-full object-cover"
-              />
-              {property.images.length > 1 && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-4 top-1/2 -translate-y-1/2"
-                    onClick={() =>
-                      setImageIndex((imageIndex - 1 + property.images.length) % property.images.length)
-                    }
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-4 top-1/2 -translate-y-1/2"
-                    onClick={() => setImageIndex((imageIndex + 1) % property.images.length)}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </>
-              )}
-            </div>
 
             <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={handleNextListing}>
               <SkipForward className="w-4 h-4 mr-2" />
