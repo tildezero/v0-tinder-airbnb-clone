@@ -55,9 +55,11 @@ export function AppHeader() {
                   <DropdownMenuItem asChild>
                     <Link href="/search">Search Listings</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/swipe">Swipe Mode</Link>
-                  </DropdownMenuItem>
+                  {user.account_type === "renter" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/swipe">Swipe Mode</Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -73,9 +75,6 @@ export function AppHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/my-listings">My Listings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/requests">Manage Requests</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
               </DropdownMenu>
@@ -140,9 +139,14 @@ export function AppHeader() {
                     <Link href="/profile">Edit Profile</Link>
                   </DropdownMenuItem>
                   {user.account_type === "renter" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/cancel-reservation">Cancel Reservation</Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-bookings">My Bookings</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/cancel-reservation">Cancel Reservation</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                 </DropdownMenuContent>

@@ -30,6 +30,12 @@ export default function SwipePage() {
       return
     }
 
+    // Only renters can access swipe page
+    if (user.account_type !== "renter") {
+      router.push("/search")
+      return
+    }
+
     loadProperties()
   }, [user, router])
 
@@ -78,25 +84,11 @@ export default function SwipePage() {
   }
 
   const handleSwipe = async (direction: "left" | "right") => {
-    if (direction === "right" && user && filteredProperties[currentIndex]) {
-      // Only renters can create requests when swiping right
-      if (user.account_type === "renter") {
-        const property = filteredProperties[currentIndex]
-        try {
-          await api.createRequest({
-            id: Date.now().toString(),
-            property_id: property.id,
-            property_title: property.title,
-            requester_id: user.id,
-            requester_name: user.name,
-            requester_rating: user.rating,
-            requester_age: user.age,
-            message: `I'm interested in booking ${property.title}!`,
-          })
-        } catch (error) {
-          console.error("Failed to create request:", error)
-        }
-      }
+    if (direction === "right" && filteredProperties[currentIndex]) {
+      // Navigate to listing page to book
+      const property = filteredProperties[currentIndex]
+      router.push(`/listing/${property.id}`)
+      return
     }
 
     if (currentIndex < filteredProperties.length - 1) {
@@ -107,7 +99,7 @@ export default function SwipePage() {
     }
   }
 
-  if (!user) {
+  if (!user || user.account_type !== "renter") {
     return null
   }
 

@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useApp } from "@/lib/context"
 import { api } from "@/lib/api"
+import { Home, User } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useApp()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [accountType, setAccountType] = useState<"renter" | "homeowner" | null>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -26,6 +28,12 @@ export default function LoginPage() {
     
     if (!email || !password) {
       setError("Please enter both email and password")
+      setIsLoading(false)
+      return
+    }
+
+    if (!accountType) {
+      setError("Please select an account type")
       setIsLoading(false)
       return
     }
@@ -41,10 +49,22 @@ export default function LoginPage() {
         return
       }
 
+      // Verify account type matches
+      if (savedUser.account_type !== accountType) {
+        setError(`This email is registered as a ${savedUser.account_type}, not ${accountType}. Please select the correct account type.`)
+        setIsLoading(false)
+        return
+      }
+
       // Login
       const success = await login(email, password)
       if (success) {
-        router.push("/swipe")
+        // Redirect based on account type
+        if (accountType === "renter") {
+          router.push("/swipe")
+        } else {
+          router.push("/my-listings")
+        }
       } else {
         setError("Invalid email or password")
       }
@@ -67,6 +87,38 @@ export default function LoginPage() {
             </div>
           )}
           <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <Label>Account Type *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setAccountType("renter")}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    accountType === "renter"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <User className="w-6 h-6 mb-2" />
+                  <p className="font-semibold">Renter</p>
+                  <p className="text-xs text-muted-foreground">Find and book properties</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType("homeowner")}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    accountType === "homeowner"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <Home className="w-6 h-6 mb-2" />
+                  <p className="font-semibold">Homeowner</p>
+                  <p className="text-xs text-muted-foreground">List and manage properties</p>
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
