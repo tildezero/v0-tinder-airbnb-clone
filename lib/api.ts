@@ -1,6 +1,19 @@
 // API client functions to replace localStorage
 
 export const api = {
+  // Auth
+  async login(email: string, password: string) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+    if (!res.ok) {
+      throw new Error("Invalid email or password")
+    }
+    return res.json()
+  },
+
   // Users
   async getUser(email: string) {
     const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`)

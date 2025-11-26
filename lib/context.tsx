@@ -34,20 +34,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const savedUser = await api.getUser(email)
-
-      if (!savedUser) {
-        return false
-      }
-
-      // In a real app, password would be hashed and compared server-side
-      // For this demo, we're storing it in the database
-      if (savedUser.password !== password) {
-        return false
-      }
-
-      // Remove password before storing
-      const { password: _, ...userWithoutPassword } = savedUser
+      // Use the login API endpoint which handles password verification server-side
+      const userWithoutPassword = await api.login(email, password)
+      
       setUser(userWithoutPassword as User)
       if (typeof window !== "undefined") {
         sessionStorage.setItem("bumblebnb_user", JSON.stringify(userWithoutPassword))
