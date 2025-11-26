@@ -19,7 +19,10 @@ export default function PostListingPage() {
     title: "",
     bedrooms: "",
     bathrooms: "",
-    address: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    zipCode: "",
     description: "",
     price: "",
     location: "",
@@ -96,8 +99,9 @@ export default function PostListingPage() {
       return
     }
 
-    if (!formData.title || !formData.bedrooms || !formData.bathrooms || !formData.price || !formData.location) {
-      alert("Please fill in all required fields")
+    if (!formData.title || !formData.bedrooms || !formData.bathrooms || !formData.price || !formData.location || 
+        !formData.streetAddress || !formData.city || !formData.state || !formData.zipCode) {
+      alert("Please fill in all required fields including the full address")
       return
     }
 
@@ -109,6 +113,9 @@ export default function PostListingPage() {
     setIsSubmitting(true)
 
     try {
+      // Combine address fields into full address string
+      const fullAddress = `${formData.streetAddress}, ${formData.city}, ${formData.state} ${formData.zipCode}`.trim()
+      
       await api.createProperty({
         title: formData.title,
         location: formData.location,
@@ -120,8 +127,8 @@ export default function PostListingPage() {
         host_id: user.id,
         host_name: user.name,
         description: formData.description || null,
-        address: formData.address || null,
-        zip_code: null,
+        address: fullAddress,
+        zip_code: formData.zipCode,
         availability: availability,
       })
 
@@ -130,7 +137,10 @@ export default function PostListingPage() {
         title: "",
         bedrooms: "",
         bathrooms: "",
-        address: "",
+        streetAddress: "",
+        city: "",
+        state: "",
+        zipCode: "",
         description: "",
         price: "",
         location: "",
@@ -247,13 +257,54 @@ export default function PostListingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Full Address</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Full address (optional)"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="bg-input min-h-[100px]"
+                  <Label htmlFor="streetAddress">Street Address *</Label>
+                  <Input
+                    id="streetAddress"
+                    placeholder="123 Main Street"
+                    value={formData.streetAddress}
+                    onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
+                    className="bg-input"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      placeholder="City"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="bg-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      placeholder="State"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      className="bg-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">Zip Code *</Label>
+                  <Input
+                    id="zipCode"
+                    placeholder="12345"
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                    className="bg-input"
+                    required
+                    pattern="[0-9]{5}(-[0-9]{4})?"
+                    title="Please enter a valid 5-digit zip code (or 9-digit with hyphen)"
                   />
                 </div>
 
