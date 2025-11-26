@@ -26,8 +26,28 @@ export default function ReviewsPage() {
   const loadReviews = async () => {
     try {
       setIsLoading(true)
-      const userReviews = await api.getReviews(undefined, user?.id)
-      setReviews(userReviews)
+      
+      if (user?.account_type === "homeowner") {
+        // For homeowners, get renter reviews they wrote
+        const renterReviews = await api.getRenterReviews(undefined, user.id)
+        // Map renter reviews to Review format for display
+        const mappedReviews = renterReviews.map((r: any) => ({
+          id: r.id,
+          propertyId: r.property_id,
+          userId: r.homeowner_id,
+          userName: r.homeowner_name,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.createdAt || r.created_at,
+          reviewed_user_name: r.renter_name,
+          review_type: "renter",
+        }))
+        setReviews(mappedReviews)
+      } else {
+        // For renters, get property reviews they wrote
+        const userReviews = await api.getReviews(undefined, user?.id)
+        setReviews(userReviews)
+      }
     } catch (error) {
       console.error("Failed to load reviews:", error)
     } finally {
@@ -58,11 +78,15 @@ export default function ReviewsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {reviews.map((review) => (
+            {reviews.map((review: any) => (
               <div key={review.id} className="bg-card rounded-xl border border-border p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="font-semibold mb-1">Property #{review.property_id}</h3>
+                    <h3 className="font-semibold mb-1">
+                      {review.review_type === "renter" 
+                        ? `Review of Renter: ${review.reviewed_user_name || "Guest"}`
+                        : `Property #${review.propertyId || review.property_id}`}
+                    </h3>
                     <div className="flex items-center gap-2">
                       {[...Array(5)].map((_, i) => (
                         <Star
@@ -73,12 +97,17 @@ export default function ReviewsPage() {
                         />
                       ))}
                       <span className="text-sm text-muted-foreground ml-2">
-                        {new Date(review.created_at).toLocaleDateString()}
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Invalid date"}
                       </span>
                     </div>
                   </div>
                 </div>
                 <p className="text-sm">{review.comment}</p>
+                {review.reservation_number && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Reservation: {review.reservation_number}
+                  </p>
+                )}
               </div>
             ))}
           </div>

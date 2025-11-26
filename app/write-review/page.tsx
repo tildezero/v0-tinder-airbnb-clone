@@ -221,10 +221,10 @@ export default function WriteReviewPage() {
           reservation_number: booking.reservation_number || "",
         })
 
-        // Refresh the page to show updated data
-        window.location.href = `/my-listings`
-      } catch (error) {
-        alert("Failed to submit review. Please try again.")
+        alert("Review submitted successfully!")
+        router.push(`/reviews`)
+      } catch (error: any) {
+        alert(error.message || "Failed to submit review. Please try again.")
         setIsSubmitting(false)
       }
     }

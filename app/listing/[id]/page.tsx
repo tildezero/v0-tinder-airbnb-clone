@@ -2,24 +2,21 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Bed, Bath, Star, SkipForward, Send, Calendar } from "lucide-react"
+import { ChevronLeft, ChevronRight, Bed, Bath, Star, SkipForward, Calendar } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { useApp } from "@/lib/context"
-import type { Review, Request, Property, Availability } from "@/lib/types"
+import type { Review, Property, Availability } from "@/lib/types"
 
 export default function ListingPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { user } = useApp()
   const [property, setProperty] = useState<Property | null>(null)
-  const [comment, setComment] = useState("")
   const [imageIndex, setImageIndex] = useState(0)
   const [reviews, setReviews] = useState<Review[]>([])
-  const [requestSubmitted, setRequestSubmitted] = useState(false)
   const [selectedDates, setSelectedDates] = useState({ start_date: "", end_date: "" })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -49,37 +46,6 @@ export default function ListingPage({ params }: { params: { id: string } }) {
       setReviews(propertyReviews)
     } catch (error) {
       console.error("Failed to load reviews:", error)
-    }
-  }
-
-  const handleSubmitRequest = async () => {
-    if (!user || !property) {
-      alert("Please log in")
-      return
-    }
-
-    if (!comment.trim()) {
-      alert("Please add a message")
-      return
-    }
-
-    try {
-      await api.createRequest({
-        id: Date.now().toString(),
-        property_id: property.id,
-        property_title: property.title,
-        requester_id: user.id,
-        requester_name: user.name,
-        requester_rating: user.rating,
-        requester_age: user.age,
-        message: comment,
-      })
-
-      setComment("")
-      setRequestSubmitted(true)
-      setTimeout(() => setRequestSubmitted(false), 3000)
-    } catch (error) {
-      alert("Failed to submit request. Please try again.")
     }
   }
 
@@ -336,27 +302,6 @@ export default function ListingPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {user?.account_type === "renter" && (
-              <>
-                <Textarea
-                  placeholder="Leave a comment for the host"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="min-h-[120px] bg-card"
-                />
-
-                {requestSubmitted && (
-                  <div className="p-3 bg-success/10 text-success rounded-md text-sm">
-                    Request submitted successfully!
-                  </div>
-                )}
-
-                <Button className="w-full" size="lg" onClick={handleSubmitRequest}>
-                  Submit Request
-                </Button>
-              </>
-            )}
-
             <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={handleNextListing}>
               <SkipForward className="w-4 h-4 mr-2" />
               Next Listing
@@ -386,7 +331,7 @@ export default function ListingPage({ params }: { params: { id: string } }) {
                         <p className="text-sm">{review.comment}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-xs text-muted-foreground">
-                            {new Date(review.created_at).toLocaleDateString()}
+                            {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Invalid date"}
                           </p>
                           {review.stay_start_date && review.stay_end_date && (
                             <>

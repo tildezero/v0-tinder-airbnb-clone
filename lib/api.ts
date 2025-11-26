@@ -132,6 +132,18 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reviewData),
     })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || "Failed to create review")
+    }
+    return res.json()
+  },
+
+  async getRenterReviews(renterId?: string, homeownerId?: string) {
+    const params = new URLSearchParams()
+    if (renterId) params.append("renterId", renterId)
+    if (homeownerId) params.append("homeownerId", homeownerId)
+    const res = await fetch(`/api/reviews/renter?${params.toString()}`)
     return res.json()
   },
 }
