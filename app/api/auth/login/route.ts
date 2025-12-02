@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
+import pool from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +10,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user with password for verification
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any
+    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email])
+    const user = rows[0] as any
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(userWithoutPassword)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Login failed" }, { status: 500 })
   }
 }

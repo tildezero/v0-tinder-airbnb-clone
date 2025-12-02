@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CheckCircle, Home } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import type { Booking } from "@/lib/types"
 
-export default function BookingConfirmedPage() {
+function BookingConfirmedContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [booking, setBooking] = useState<Booking | null>(null)
@@ -87,6 +87,14 @@ export default function BookingConfirmedPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function BookingConfirmedPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingConfirmedContent />
+    </Suspense>
   )
 }
 

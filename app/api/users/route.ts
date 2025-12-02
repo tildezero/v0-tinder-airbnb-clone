@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
+import pool from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get("email")
 
     if (email) {
-      const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any
+      const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email])
+      const user = rows[0] as any
       if (user) {
         // Remove password from response
         const { password, ...userWithoutPassword } = user
@@ -16,9 +17,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(null)
     }
 
-    const users = db.prepare("SELECT id, name, username, email, account_type, rating FROM users").all()
+    const { rows: users } = await pool.query(
+      "SELECT id, name, username, email, account_type, rating FROM users"
+    )
     return NextResponse.json(users)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
   }
 }
@@ -28,21 +32,25 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const { id, name, username, email, password, account_type, dob, bio, address } = data
 
-    const stmt = db.prepare(`
+    const { rows } = await pool.query(
+      `
       INSERT INTO users (id, name, username, email, password, account_type, dob, bio, address)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `,
+      [id, name, username, email, password, account_type, dob || null, bio || null, address || null]
+    )
 
-    stmt.run(id, name, username, email, password, account_type, dob || null, bio || null, address || null)
-
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as any
+    const user = rows[0] as any
     const { password: _, ...userWithoutPassword } = user
 
     return NextResponse.json(userWithoutPassword, { status: 201 })
   } catch (error: any) {
-    if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
+    if (error.code === "23505") {
+      // Postgres unique constraint violation code
       return NextResponse.json({ error: "Email already exists" }, { status: 400 })
     }
+    console.error(error)
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
   }
 }
@@ -76,17 +84,20 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
     }
 
-    const setClause = updateFields.map((field) => `${field} = ?`).join(", ")
+    const setClause = updateFields.map((field, index) => `${field} = $${index + 1}`).join(", ")
     const values = updateFields.map((field) => updates[field])
 
-    const stmt = db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`)
-    stmt.run(...values, id)
+    const { rows } = await pool.query(
+      `UPDATE users SET ${setClause} WHERE id = $${values.length + 1} RETURNING *`,
+      [...values, id]
+    )
 
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as any
+    const user = rows[0] as any
     const { password: _, ...userWithoutPassword } = user
 
     return NextResponse.json(userWithoutPassword)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CreditCard, Check, Lock } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
@@ -11,7 +11,7 @@ import { useApp } from "@/lib/context"
 import { api } from "@/lib/api"
 import type { Booking, Property } from "@/lib/types"
 
-export default function PaymentPage() {
+function PaymentContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useApp()
@@ -330,6 +330,14 @@ export default function PaymentPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div>Loading payment details...</div>}>
+      <PaymentContent />
+    </Suspense>
   )
 }
 

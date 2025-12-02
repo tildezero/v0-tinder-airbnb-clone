@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Star, Send, User, Home } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
@@ -12,7 +12,7 @@ import { useApp } from "@/lib/context"
 import { api } from "@/lib/api"
 import type { Property, Booking } from "@/lib/types"
 
-export default function WriteReviewPage() {
+function WriteReviewContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useApp()
@@ -403,5 +403,13 @@ export default function WriteReviewPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function WriteReviewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WriteReviewContent />
+    </Suspense>
   )
 }

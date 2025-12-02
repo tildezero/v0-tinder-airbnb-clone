@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
+import pool from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,27 +14,29 @@ export async function GET(request: NextRequest) {
       WHERE 1=1
     `
     let params: any[] = []
+    let paramIndex = 1
 
     if (renterId) {
-      query += " AND b.renter_id = ?"
+      query += ` AND b.renter_id = $${paramIndex++}`
       params.push(renterId)
     }
 
     if (propertyId) {
-      query += " AND b.property_id = ?"
+      query += ` AND b.property_id = $${paramIndex++}`
       params.push(propertyId)
     }
 
     query += " ORDER BY b.created_at DESC"
 
-    const bookings = db.prepare(query).all(...params) as any[]
-    const bookingsWithImages = bookings.map((booking) => ({
+    const { rows: bookings } = await pool.query(query, params)
+    const bookingsWithImages = bookings.map((booking: any) => ({
       ...booking,
       images: JSON.parse(booking.images || "[]"),
     }))
 
     return NextResponse.json(bookingsWithImages)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 })
   }
 }
@@ -69,20 +71,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if dates are available
-    const conflictingBookings = db
-      .prepare(
-        `
+    const { rows: conflictingBookings } = await pool.query(
+      `
       SELECT * FROM bookings 
-      WHERE property_id = ? 
+      WHERE property_id = $1 
       AND status IN ('pending', 'confirmed')
       AND (
-        (start_date <= ? AND end_date >= ?) OR
-        (start_date <= ? AND end_date >= ?) OR
-        (start_date >= ? AND end_date <= ?)
+        (start_date <= $2 AND end_date >= $3) OR
+        (start_date <= $4 AND end_date >= $5) OR
+        (start_date >= $6 AND end_date <= $7)
       )
-    `
-      )
-      .all(property_id, start_date, start_date, end_date, end_date, start_date, end_date)
+    `,
+      [property_id, start_date, start_date, end_date, end_date, start_date, end_date]
+    )
 
     if (conflictingBookings.length > 0) {
       return NextResponse.json({ error: "Selected dates are not available" }, { status: 400 })
@@ -98,36 +99,37 @@ export async function POST(request: NextRequest) {
     const random = Math.floor(Math.random() * 1000)
     const reservation_number = `RES-${timestamp}-${random}`
 
-    const stmt = db.prepare(`
+    const { rows } = await pool.query(
+      `
       INSERT INTO bookings (
         property_id, renter_id, start_date, end_date, 
         subtotal, tax, total_price, reservation_number,
         guest_first_name, guest_last_name, guest_middle_initial,
         guest_email, guest_credit_card, status
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
-    `)
-
-    const result = stmt.run(
-      property_id,
-      renter_id || null,
-      start_date,
-      end_date,
-      calculatedSubtotal,
-      tax,
-      total_price,
-      reservation_number,
-      guest_first_name || null,
-      guest_last_name || null,
-      guest_middle_initial || null,
-      guest_email || null,
-      guest_credit_card || null
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'confirmed')
+      RETURNING *
+    `,
+      [
+        property_id,
+        renter_id || null,
+        start_date,
+        end_date,
+        calculatedSubtotal,
+        tax,
+        total_price,
+        reservation_number,
+        guest_first_name || null,
+        guest_last_name || null,
+        guest_middle_initial || null,
+        guest_email || null,
+        guest_credit_card || null,
+      ]
     )
 
-    const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(result.lastInsertRowid)
-
-    return NextResponse.json(booking, { status: 201 })
+    return NextResponse.json(rows[0], { status: 201 })
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to create booking" }, { status: 500 })
   }
 }
@@ -137,12 +139,14 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json()
     const { id, status } = data
 
-    const stmt = db.prepare("UPDATE bookings SET status = ? WHERE id = ?")
-    stmt.run(status, id)
+    const { rows } = await pool.query(
+      "UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *",
+      [status, id]
+    )
 
-    const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id)
-    return NextResponse.json(booking)
+    return NextResponse.json(rows[0])
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to update booking" }, { status: 500 })
   }
 }

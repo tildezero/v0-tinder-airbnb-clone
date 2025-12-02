@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import db from "@/lib/db"
+import pool from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,18 +15,19 @@ export async function GET(request: NextRequest) {
       query = `
         SELECT r.* FROM requests r
         JOIN properties p ON r.property_id = p.id
-        WHERE p.host_id = ? AND r.status = 'pending'
+        WHERE p.host_id = $1 AND r.status = 'pending'
         ORDER BY r.created_at DESC
       `
       params = [hostId]
     } else if (requesterId) {
-      query = "SELECT * FROM requests WHERE requester_id = ? ORDER BY created_at DESC"
+      query = "SELECT * FROM requests WHERE requester_id = $1 ORDER BY created_at DESC"
       params = [requesterId]
     }
 
-    const requests = db.prepare(query).all(...params)
+    const { rows: requests } = await pool.query(query, params)
     return NextResponse.json(requests)
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to fetch requests" }, { status: 500 })
   }
 }
@@ -37,16 +38,27 @@ export async function POST(request: NextRequest) {
     const { id, property_id, property_title, requester_id, requester_name, requester_rating, requester_age, message } =
       data
 
-    const stmt = db.prepare(`
+    const { rows } = await pool.query(
+      `
       INSERT INTO requests (id, property_id, property_title, requester_id, requester_name, requester_rating, requester_age, message)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `,
+      [
+        id,
+        property_id,
+        property_title,
+        requester_id,
+        requester_name,
+        requester_rating || null,
+        requester_age || null,
+        message || null,
+      ]
+    )
 
-    stmt.run(id, property_id, property_title, requester_id, requester_name, requester_rating || null, requester_age || null, message || null)
-
-    const request = db.prepare("SELECT * FROM requests WHERE id = ?").get(id)
-    return NextResponse.json(request, { status: 201 })
+    return NextResponse.json(rows[0], { status: 201 })
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to create request" }, { status: 500 })
   }
 }
@@ -56,12 +68,14 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json()
     const { id, status } = data
 
-    const stmt = db.prepare("UPDATE requests SET status = ? WHERE id = ?")
-    stmt.run(status, id)
+    const { rows } = await pool.query(
+      "UPDATE requests SET status = $1 WHERE id = $2 RETURNING *",
+      [status, id]
+    )
 
-    const request = db.prepare("SELECT * FROM requests WHERE id = ?").get(id)
-    return NextResponse.json(request)
+    return NextResponse.json(rows[0])
   } catch (error) {
+    console.error(error)
     return NextResponse.json({ error: "Failed to update request" }, { status: 500 })
   }
 }
