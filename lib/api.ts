@@ -186,6 +186,17 @@ export const api = {
     return data.listings ?? []
   },
 
+  async adminDeleteProperty(propertyId: string | number) {
+    const res = await fetch(`/api/admin/listings?id=${propertyId}`, {
+      method: "DELETE",
+    })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || "Failed to delete property")
+    }
+    return res.json()
+  },
+
   // --- USERS ---
   async adminGetUsers() {
     const res = await fetch("/api/admin/users")

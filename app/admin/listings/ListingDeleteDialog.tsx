@@ -14,7 +14,7 @@ export default function ListingDeleteDialog({
 }) {
   const remove = async () => {
     try {
-      await api.deleteProperty(property.id)
+      await api.adminDeleteProperty(property.id)
       onClose()
     } catch (err) {
       console.error(err)

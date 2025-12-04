@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useApp } from "@/lib/context"
+import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +12,8 @@ import {
   Home,
   Star,
   ClipboardList,
-  Eye
+  Eye,
+  LogOut
 } from "lucide-react"
 
 const links = [
@@ -24,12 +27,19 @@ const links = [
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout } = useApp()
+
+  const handleLogout = () => {
+    logout()
+    router.push("/login")
+  }
 
   return (
-    <aside className="w-64 bg-card border-r border-border p-6">
+    <aside className="w-64 bg-card border-r border-border p-6 flex flex-col">
       <div className="text-2xl font-bold mb-8">Admin Panel</div>
 
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
         {links.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -45,8 +55,18 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="mt-10 text-sm text-muted-foreground">
-        Logged in as Admin
+      <div className="mt-auto pt-4 border-t border-border">
+        <div className="text-sm text-muted-foreground mb-3">
+          Logged in as Admin
+        </div>
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </Button>
       </div>
     </aside>
   )
