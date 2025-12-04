@@ -118,3 +118,48 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const propertyId = searchParams.get("id")
+    const hostId = searchParams.get("hostId")
+
+    if (!propertyId) {
+      return NextResponse.json({ error: "Property ID required" }, { status: 400 })
+    }
+
+    if (!hostId) {
+      return NextResponse.json({ error: "Host ID required" }, { status: 400 })
+    }
+
+    // Verify ownership
+    const { rows: property } = await pool.query(
+      "SELECT host_id FROM properties WHERE id = $1",
+      [propertyId]
+    )
+
+    if (property.length === 0) {
+      return NextResponse.json({ error: "Property not found" }, { status: 404 })
+    }
+
+    // Compare as strings to handle type differences
+    if (String(property[0].host_id) !== String(hostId)) {
+      return NextResponse.json({ error: "Unauthorized: You can only delete your own listings" }, { status: 403 })
+    }
+
+    // Delete related data first (cascade delete might handle this, but being explicit)
+    await pool.query("DELETE FROM availability WHERE property_id = $1", [propertyId])
+    await pool.query("DELETE FROM bookings WHERE property_id = $1", [propertyId])
+    await pool.query("DELETE FROM reviews WHERE property_id = $1", [propertyId])
+    await pool.query("DELETE FROM requests WHERE property_id = $1", [propertyId])
+
+    // Delete the property
+    await pool.query("DELETE FROM properties WHERE id = $1", [propertyId])
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: "Failed to delete property" }, { status: 500 })
+  }
+}
+

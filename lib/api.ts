@@ -64,6 +64,17 @@ export const api = {
     return res.json()
   },
 
+  async deleteProperty(propertyId: string, hostId: string) {
+    const res = await fetch(`/api/properties?id=${propertyId}&hostId=${hostId}`, {
+      method: "DELETE",
+    })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || "Failed to delete property")
+    }
+    return res.json()
+  },
+
   // -------------------------
   // REQUESTS
   // -------------------------
