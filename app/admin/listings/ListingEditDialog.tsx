@@ -30,7 +30,7 @@ export default function ListingEditDialog({
     zip_code: property.zip_code || "",
     images: Array.isArray(property.images) ? property.images : [],
     id: property.id,              // keep id
-    homeowner_id: property.homeowner_id // keep owner
+    host_id: (property as any).host_id // keep owner
   }
 
   const [form, setForm] = useState(safeDefaults)
@@ -43,7 +43,7 @@ export default function ListingEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      await api.updateProperty(form)
+      await api.adminUpdateProperty(form)
       onClose()
     } catch (err) {
       console.error(err)

@@ -25,9 +25,17 @@ export default function UserEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      await api.updateUser(form)
+      const { id, password, ...updates } = form
+      
+      // Only include password if it's not empty
+      if (password && password.trim() !== "") {
+        updates.password = password
+      }
+      
+      await api.updateUser(id, updates)
       onClose()
     } catch (err) {
+      console.error(err)
       alert("Failed to update user")
     }
     setSaving(false)
