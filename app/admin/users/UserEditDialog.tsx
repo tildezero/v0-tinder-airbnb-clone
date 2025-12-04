@@ -15,7 +15,7 @@ export default function UserEditDialog({
   user: User
   onClose: () => void
 }) {
-  const [form, setForm] = useState({ ...user })
+  const [form, setForm] = useState({ ...user, password: "" } as User & { password?: string })
   const [saving, setSaving] = useState(false)
 
   const update = (field: string, value: any) => {
@@ -25,18 +25,23 @@ export default function UserEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      const { id, password, ...updates } = form
+      const { id, password, ...updates } = form as any
       
       // Only include password if it's not empty
       if (password && password.trim() !== "") {
         updates.password = password
       }
       
-      await api.updateUser(id, updates)
-      onClose()
+      const result = await api.updateUser(id, updates)
+      if (result) {
+        // Only close on successful update
+        onClose()
+      }
     } catch (err) {
       console.error(err)
       alert("Failed to update user")
+      setSaving(false)
+      return
     }
     setSaving(false)
   }

@@ -32,11 +32,16 @@ export default function RenterEditDialog({
         updates.password = password
       }
       
-      await api.updateUser(id, updates)
-      onClose()
+      const result = await api.updateUser(id, updates)
+      if (result) {
+        // Only close on successful update
+        onClose()
+      }
     } catch (err) {
       console.error(err)
       alert("Failed to update renter")
+      setSaving(false)
+      return
     }
     setSaving(false)
   }

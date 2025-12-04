@@ -37,6 +37,10 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: userId, ...updates }),
     })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || "Failed to update user")
+    }
     return res.json()
   },
 
