@@ -13,10 +13,24 @@ export async function GET() {
       ORDER BY p.id DESC
     `)
 
-    const listings = result.rows.map((row: any) => ({
-      ...row,
-      images: row.images ?? [],
-    }))
+    const listings = result.rows.map((row: any) => {
+      // Parse images JSON if it's a string, otherwise use the array or default to empty array
+      let images = []
+      if (typeof row.images === 'string') {
+        try {
+          images = JSON.parse(row.images || "[]")
+        } catch (e) {
+          images = []
+        }
+      } else if (Array.isArray(row.images)) {
+        images = row.images
+      }
+      
+      return {
+        ...row,
+        images,
+      }
+    })
 
     return NextResponse.json({ listings })
   } catch (error) {
@@ -77,9 +91,11 @@ export async function PATCH(request: NextRequest) {
       updateFields.push(`bathrooms = $${paramIndex++}`)
       values.push(bathrooms)
     }
+    // Always update images if provided (even if empty array - user explicitly cleared them)
+    // This ensures images are preserved if the field wasn't touched
     if (images !== undefined) {
       updateFields.push(`images = $${paramIndex++}`)
-      values.push(JSON.stringify(images))
+      values.push(JSON.stringify(Array.isArray(images) ? images : []))
     }
     if (description !== undefined) {
       updateFields.push(`description = $${paramIndex++}`)

@@ -43,7 +43,12 @@ export default function ListingEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      await api.adminUpdateProperty(form)
+      // Ensure images is always an array, even if empty
+      const updateData = {
+        ...form,
+        images: Array.isArray(form.images) ? form.images.filter(img => img.trim() !== "") : []
+      }
+      await api.adminUpdateProperty(updateData)
       onClose()
     } catch (err) {
       console.error(err)
