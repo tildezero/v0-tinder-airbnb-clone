@@ -15,7 +15,25 @@ export default function ListingEditDialog({
   property: Property
   onClose: () => void
 }) {
-  const [form, setForm] = useState({ ...property })
+
+  // 🔥 SAFETY DEFAULTS — prevents crashes
+  const safeDefaults = {
+    title: property.title || "",
+    description: property.description || "",
+    location: property.location || "",
+    price: property.price ?? 0,
+    bedrooms: property.bedrooms ?? 0,
+    bathrooms: property.bathrooms ?? 0,
+    address: property.address || "",
+    city: property.city || "",
+    state: property.state || "",
+    zip_code: property.zip_code || "",
+    images: Array.isArray(property.images) ? property.images : [],
+    id: property.id,              // keep id
+    homeowner_id: property.homeowner_id // keep owner
+  }
+
+  const [form, setForm] = useState(safeDefaults)
   const [saving, setSaving] = useState(false)
 
   const update = (field: string, value: any) => {
@@ -25,7 +43,7 @@ export default function ListingEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      await api.adminUpdateProperty(form)
+      await api.updateProperty(form)
       onClose()
     } catch (err) {
       console.error(err)
@@ -54,7 +72,7 @@ export default function ListingEditDialog({
           <div className="col-span-2">
             <Label>Description</Label>
             <Input
-              value={form.description || ""}
+              value={form.description}
               onChange={(e) => update("description", e.target.value)}
             />
           </div>
@@ -97,7 +115,7 @@ export default function ListingEditDialog({
           <div className="col-span-2">
             <Label>Address</Label>
             <Input
-              value={form.address || ""}
+              value={form.address}
               onChange={(e) => update("address", e.target.value)}
             />
           </div>
@@ -105,7 +123,7 @@ export default function ListingEditDialog({
           <div>
             <Label>City</Label>
             <Input
-              value={form.city || ""}
+              value={form.city}
               onChange={(e) => update("city", e.target.value)}
             />
           </div>
@@ -113,7 +131,7 @@ export default function ListingEditDialog({
           <div>
             <Label>State</Label>
             <Input
-              value={form.state || ""}
+              value={form.state}
               onChange={(e) => update("state", e.target.value)}
             />
           </div>
@@ -121,7 +139,7 @@ export default function ListingEditDialog({
           <div>
             <Label>Zip Code</Label>
             <Input
-              value={form.zip_code || ""}
+              value={form.zip_code}
               onChange={(e) => update("zip_code", e.target.value)}
             />
           </div>
@@ -129,7 +147,7 @@ export default function ListingEditDialog({
           <div className="col-span-2">
             <Label>Image URLs (comma separated)</Label>
             <Input
-              value={form.images.join(", ")}
+              value={form.images?.join(", ") || ""}
               onChange={(e) =>
                 update(
                   "images",
