@@ -6,7 +6,7 @@ import { AppProvider } from '@/lib/context'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'BumbleBNB - Tinder for Rentals',
+  title: 'BumbleBNB',
   description: 'Find your perfect rental match',
   generator: 'v0.app',
   icons: {
