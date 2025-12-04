@@ -25,7 +25,7 @@ export default function ListingEditDialog({
   const save = async () => {
     setSaving(true)
     try {
-      await api.updateProperty(form)
+      await api.adminUpdateProperty(form)
       onClose()
     } catch (err) {
       console.error(err)

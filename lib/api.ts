@@ -186,6 +186,19 @@ export const api = {
     return data.listings ?? []
   },
 
+  async adminUpdateProperty(propertyData: any) {
+    const res = await fetch("/api/admin/listings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(propertyData),
+    })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || "Failed to update property")
+    }
+    return res.json()
+  },
+
   async adminDeleteProperty(propertyId: string | number) {
     const res = await fetch(`/api/admin/listings?id=${propertyId}`, {
       method: "DELETE",
