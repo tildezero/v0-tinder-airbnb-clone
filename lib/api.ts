@@ -1,20 +1,22 @@
 // API client functions to replace localStorage
 
 export const api = {
-  // Auth
+  // -------------------------
+  // AUTH
+  // -------------------------
   async login(email: string, password: string) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     })
-    if (!res.ok) {
-      throw new Error("Invalid email or password")
-    }
+    if (!res.ok) throw new Error("Invalid email or password")
     return res.json()
   },
 
-  // Users
+  // -------------------------
+  // USERS
+  // -------------------------
   async getUser(email: string) {
     const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`)
     return res.json()
@@ -38,11 +40,19 @@ export const api = {
     return res.json()
   },
 
-  // Properties
+  // -------------------------
+  // PROPERTIES
+  // -------------------------
   async getProperties(hostId?: string) {
     const url = hostId ? `/api/properties?hostId=${hostId}` : "/api/properties"
     const res = await fetch(url)
-    return res.json()
+    const data = await res.json()
+
+    // Always return an array
+    if (Array.isArray(data)) return data
+    if (Array.isArray(data.properties)) return data.properties
+
+    return []
   },
 
   async createProperty(propertyData: any) {
@@ -54,11 +64,14 @@ export const api = {
     return res.json()
   },
 
-  // Requests
+  // -------------------------
+  // REQUESTS
+  // -------------------------
   async getRequests(hostId?: string, requesterId?: string) {
     const params = new URLSearchParams()
     if (hostId) params.append("hostId", hostId)
     if (requesterId) params.append("requesterId", requesterId)
+
     const res = await fetch(`/api/requests?${params.toString()}`)
     return res.json()
   },
@@ -81,11 +94,14 @@ export const api = {
     return res.json()
   },
 
-  // Bookings
+  // -------------------------
+  // BOOKINGS (REGULAR USER)
+  // -------------------------
   async getBookings(renterId?: string, propertyId?: string) {
     const params = new URLSearchParams()
     if (renterId) params.append("renterId", renterId)
     if (propertyId) params.append("propertyId", propertyId)
+
     const res = await fetch(`/api/bookings?${params.toString()}`)
     return res.json()
   },
@@ -108,11 +124,14 @@ export const api = {
     return res.json()
   },
 
-  // Reviews
+  // -------------------------
+  // REVIEWS (REGULAR USER)
+  // -------------------------
   async getReviews(propertyId?: string, userId?: string) {
     const params = new URLSearchParams()
     if (propertyId) params.append("propertyId", propertyId)
     if (userId) params.append("userId", userId)
+
     const res = await fetch(`/api/reviews?${params.toString()}`)
     return res.json()
   },
@@ -132,10 +151,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(reviewData),
     })
-    if (!res.ok) {
-      const error = await res.json()
-      throw new Error(error.error || "Failed to create review")
-    }
+    if (!res.ok) throw new Error((await res.json()).error)
     return res.json()
   },
 
@@ -143,8 +159,87 @@ export const api = {
     const params = new URLSearchParams()
     if (renterId) params.append("renterId", renterId)
     if (homeownerId) params.append("homeownerId", homeownerId)
+
     const res = await fetch(`/api/reviews/renter?${params.toString()}`)
     return res.json()
   },
-}
 
+  // ============================================================
+  // ADMIN ROUTES (FINAL, CLEAN, CORRECT)
+  // ============================================================
+
+  // --- LISTINGS ---
+  async adminGetListings() {
+    const res = await fetch("/api/admin/listings")
+    const data = await res.json()
+    return data.listings ?? []
+  },
+
+  // --- USERS ---
+  async adminGetUsers() {
+    const res = await fetch("/api/admin/users")
+    const data = await res.json()
+    return data.users ?? []
+  },
+
+  // --- REVIEWS ---
+  async adminGetReviews() {
+    const res = await fetch("/api/admin/reviews")
+
+    if (!res.ok) {
+      console.error("Admin reviews fetch failed")
+      return []
+    }
+
+    const data = await res.json()
+
+    // Normalize every possible return type
+    if (Array.isArray(data)) return data
+    if (Array.isArray(data.reviews)) return data.reviews
+
+    return []
+  },
+
+  async adminDeleteReview(id: number) {
+    const res = await fetch("/api/admin/reviews", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+    return res.json()
+  },
+
+  // --- BOOKINGS ---
+  async adminGetBookings() {
+    const res = await fetch("/api/admin/bookings")
+    const data = await res.json()
+    return data.bookings ?? []
+  },
+
+  async adminUpdateBookingStatus(id: number, status: string) {
+    const res = await fetch("/api/admin/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    })
+    return res.json()
+  },
+
+  // ADMIN + NORMAL: Get all users
+  async getUsers() {
+    const res = await fetch("/api/users", {
+      method: "GET",
+    })
+
+    if (!res.ok) {
+      console.error("Failed to fetch users")
+      return []
+    }
+
+    const data = await res.json()
+
+    // Guarantee array
+    return Array.isArray(data) ? data : data.users ?? []
+  },
+
+}

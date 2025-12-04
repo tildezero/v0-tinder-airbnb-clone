@@ -106,3 +106,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ error: "Review ID required" }, { status: 400 })
+    }
+
+    await pool.query("DELETE FROM reviews WHERE id = $1", [id])
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Review delete error:", error)
+    return NextResponse.json({ error: "Failed to delete review" }, { status: 500 })
+  }
+}

@@ -102,3 +102,21 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing user id" }, { status: 400 })
+    }
+
+    await pool.query("DELETE FROM users WHERE id = $1", [id])
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 })
+  }
+}
+
