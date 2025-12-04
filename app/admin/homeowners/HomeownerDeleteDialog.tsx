@@ -1,0 +1,48 @@
+"use client"
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import type { User } from "@/lib/types"
+import { api } from "@/lib/api"
+
+export default function HomeownerDeleteDialog({
+  user,
+  onClose
+}: {
+  user: User
+  onClose: () => void
+}) {
+  const remove = async () => {
+    try {
+      await api.deleteUser(user.id)
+      onClose()
+    } catch (err) {
+      alert("Failed to delete homeowner")
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Homeowner</DialogTitle>
+        </DialogHeader>
+
+        <p className="mb-4">
+          Are you sure you want to delete <strong>{user.name}</strong>?  
+          This will remove their account and all associated data.
+        </p>
+
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+
+          <Button variant="destructive" onClick={remove}>
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
