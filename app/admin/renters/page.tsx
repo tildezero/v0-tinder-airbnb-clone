@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { RefreshCw } from "lucide-react"
 import RenterEditDialog from "./RenterEditDialog"
 import RenterDeleteDialog from "./RenterDeleteDialog"
 
@@ -22,14 +23,22 @@ export default function RentersPage() {
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<User | null>(null)
   const [toDelete, setToDelete] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     load()
   }, [])
 
   const load = async () => {
-    const all = await api.adminGetUsers()
-    setRenters(all.filter((u: User) => u.account_type === "renter"))
+    setIsLoading(true)
+    try {
+      const all = await api.adminGetUsers()
+      setRenters(all.filter((u: User) => u.account_type === "renter"))
+    } catch (error) {
+      console.error("Failed to load renters:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const filtered = renters.filter((u) =>
@@ -42,13 +51,22 @@ export default function RentersPage() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Manage Renters</h1>
 
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between items-center mb-4 gap-4">
         <Input
           placeholder="Search renters..."
           className="w-64"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <Button
+          variant="outline"
+          onClick={load}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="rounded-lg border">

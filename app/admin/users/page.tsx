@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { RefreshCw } from "lucide-react"
 import UserEditDialog from "./UserEditDialog"
 import UserDeleteDialog from "./UserDeleteDialog"
 
@@ -22,14 +23,22 @@ export default function UsersPage() {
   const [search, setSearch] = useState("")
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     load()
   }, [])
 
   const load = async () => {
-    const data = await api.adminGetUsers()
-    setUsers(data)
+    setIsLoading(true)
+    try {
+      const data = await api.adminGetUsers()
+      setUsers(data)
+    } catch (error) {
+      console.error("Failed to load users:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const filtered = users.filter((u) =>
@@ -42,13 +51,22 @@ export default function UsersPage() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Manage Users</h1>
 
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between items-center mb-4 gap-4">
         <Input
           placeholder="Search users..."
           className="w-64"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <Button
+          variant="outline"
+          onClick={load}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="rounded-lg border">

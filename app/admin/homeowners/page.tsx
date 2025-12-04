@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { RefreshCw } from "lucide-react"
 import HomeownerEditDialog from "./HomeownerEditDialog"
 import HomeownerDeleteDialog from "./HomeownerDeleteDialog"
 
@@ -22,14 +23,22 @@ export default function HomeownersPage() {
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<User | null>(null)
   const [toDelete, setToDelete] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     load()
   }, [])
 
   const load = async () => {
-    const all = await api.adminGetUsers()
-    setHomeowners(all.filter((u: User) => u.account_type === "homeowner"))
+    setIsLoading(true)
+    try {
+      const all = await api.adminGetUsers()
+      setHomeowners(all.filter((u: User) => u.account_type === "homeowner"))
+    } catch (error) {
+      console.error("Failed to load homeowners:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const filtered = homeowners.filter((u) =>
@@ -42,13 +51,22 @@ export default function HomeownersPage() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Manage Homeowners</h1>
 
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between items-center mb-4 gap-4">
         <Input
           placeholder="Search homeowners..."
           className="w-64"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <Button
+          variant="outline"
+          onClick={load}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="rounded-lg border">
